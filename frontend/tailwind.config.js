@@ -1,0 +1,87 @@
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+  theme: {
+    extend: {
+      colors: {
+        'metin-dark': '#0a0a0f',
+        'metin-darker': '#050508',
+        'metin-panel': '#1a1a2e',
+        'metin-panel-light': '#252540',
+        'metin-border': '#3a3a5c',
+        'metin-border-gold': '#8b7332',
+        'metin-gold': '#d4a832',
+        'metin-gold-light': '#f0d060',
+        'metin-gold-dark': '#9a7b20',
+        'metin-red': '#c83030',
+        'metin-red-dark': '#8b1a1a',
+        'metin-blue': '#3060c8',
+        'metin-blue-dark': '#1a3a8b',
+        'metin-green': '#30a830',
+        'metin-green-dark': '#1a6b1a',
+        'metin-purple': '#8030c8',
+        'metin-orange': '#c87830',
+        'metin-cyan': '#30c8c8',
+        'metin-hp': '#c83030',
+        'metin-mp': '#3060c8',
+        'metin-stamina': '#c8a030',
+        'metin-exp': '#30a830',
+        'rarity-common': '#b0b0b0',
+        'rarity-uncommon': '#30c830',
+        'rarity-rare': '#3080f0',
+        'rarity-epic': '#a030f0',
+        'rarity-legendary': '#f0a030',
+        'rarity-mythic': '#f03030',
+        'kingdom-shinsoo': '#4080d0',
+        'kingdom-chunjo': '#d04040',
+        'kingdom-jinno': '#d0a040',
+      },
+      fontFamily: {
+        medieval: ['MedievalSharp', 'serif'],
+        pixel: ['"Press Start 2P"', 'monospace'],
+      },
+      animation: {
+        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'glow': 'glow 2s ease-in-out infinite alternate',
+        'slide-in': 'slideIn 0.3s ease-out',
+        'fade-in': 'fadeIn 0.3s ease-out',
+        'shake': 'shake 0.5s ease-in-out',
+        'float': 'float 3s ease-in-out infinite',
+        'damage': 'damage 0.8s ease-out forwards',
+      },
+      keyframes: {
+        glow: {
+          '0%': { boxShadow: '0 0 5px rgba(212, 168, 50, 0.3)' },
+          '100%': { boxShadow: '0 0 20px rgba(212, 168, 50, 0.6)' },
+        },
+        slideIn: {
+          '0%': { transform: 'translateY(-10px)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' },
+        },
+        fadeIn: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        shake: {
+          '0%, 100%': { transform: 'translateX(0)' },
+          '25%': { transform: 'translateX(-5px)' },
+          '75%': { transform: 'translateX(5px)' },
+        },
+        float: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-5px)' },
+        },
+        damage: {
+          '0%': { transform: 'translateY(0)', opacity: '1' },
+          '100%': { transform: 'translateY(-30px)', opacity: '0' },
+        },
+      },
+      boxShadow: {
+        'metin': '0 0 10px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
+        'metin-gold': '0 0 10px rgba(212, 168, 50, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
+        'metin-glow': '0 0 20px rgba(212, 168, 50, 0.5)',
+      },
+    },
+  },
+  plugins: [],
+};

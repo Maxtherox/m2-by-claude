@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Idle Farm 🌾</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #1a1a2e;
+    --panel: #16213e;
+    --card: #0f3460;
+    --accent: #e94560;
+    --gold: #f5c518;
+    --green: #4ecca3;
+    --text: #eee;
+    --text-dim: #8899aa;
+    --shadow: 0 4px 15px rgba(0,0,0,.3);
+  }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ─── HEADER ─── */
+  header {
+    background: linear-gradient(135deg, var(--panel), var(--card));
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: var(--shadow);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  header h1 { font-size: 1.4rem; }
+  .stats {
+    display: flex;
+    gap: 20px;
+    font-weight: 700;
+    font-size: .95rem;
+  }
+  .stats span { display: flex; align-items: center; gap: 5px; }
+  .stat-icon { font-size: 1.1rem; }
+
+  /* ─── LAYOUT ─── */
+  .game-wrap {
+    display: grid;
+    grid-template-columns: 280px 1fr 280px;
+    gap: 16px;
+    padding: 16px;
+    max-width: 1400px;
+    margin: 0 auto;
+    min-height: calc(100vh - 56px);
+  }
+  @media (max-width: 1100px) {
+    .game-wrap { grid-template-columns: 1fr; }
+  }
+
+  /* ─── PANELS ─── */
+  .panel {
+    background: var(--panel);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: var(--shadow);
+    overflow-y: auto;
+    max-height: calc(100vh - 88px);
+  }
+  .panel h2 {
+    font-size: 1rem;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--card);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* ─── FARM GRID ─── */
+  .farm-container { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+  .farm-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    width: 100%;
+    max-width: 520px;
+  }
+  .plot {
+    aspect-ratio: 1;
+    background: #2a1a0a;
+    border: 3px solid #5a3a1a;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all .2s;
+    position: relative;
+    font-size: .8rem;
+    user-select: none;
+    min-height: 80px;
+  }
+  .plot:hover { border-color: var(--gold); transform: scale(1.04); }
+  .plot.locked {
+    background: #111;
+    border-color: #333;
+    cursor: not-allowed;
+    opacity: .5;
+  }
+  .plot.locked:hover { transform: none; border-color: #333; }
+  .plot .emoji { font-size: 2rem; line-height: 1; }
+  .plot .timer {
+    font-size: .65rem;
+    color: var(--gold);
+    margin-top: 2px;
+    font-weight: 700;
+  }
+  .plot .progress-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 4px;
+    background: var(--green);
+    border-radius: 0 0 7px 7px;
+    transition: width .3s linear;
+  }
+  .plot.ready { border-color: var(--green); animation: glow 1s infinite alternate; }
+  @keyframes glow {
+    from { box-shadow: 0 0 5px rgba(78,204,163,.3); }
+    to   { box-shadow: 0 0 15px rgba(78,204,163,.6); }
+  }
+  .plot .harvest-text {
+    position: absolute;
+    color: var(--gold);
+    font-weight: 800;
+    font-size: 1rem;
+    animation: floatUp .8s forwards;
+    pointer-events: none;
+  }
+  @keyframes floatUp {
+    0%   { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(-40px); }
+  }
+
+  /* ─── CROP SELECTOR ─── */
+  .crop-list { display: flex; flex-direction: column; gap: 8px; }
+  .crop-btn {
+    background: var(--card);
+    border: 2px solid transparent;
+    border-radius: 10px;
+    padding: 10px 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text);
+    transition: all .15s;
+    font-family: inherit;
+    font-size: .82rem;
+  }
+  .crop-btn:hover { border-color: var(--gold); }
+  .crop-btn.selected { border-color: var(--green); background: rgba(78,204,163,.1); }
+  .crop-btn.locked-crop { opacity: .4; cursor: not-allowed; }
+  .crop-btn .crop-emoji { font-size: 1.5rem; }
+  .crop-btn .crop-info { flex: 1; text-align: left; }
+  .crop-btn .crop-name { font-weight: 700; display: block; }
+  .crop-btn .crop-detail { font-size: .72rem; color: var(--text-dim); }
+
+  /* ─── UPGRADES ─── */
+  .upgrade-list { display: flex; flex-direction: column; gap: 8px; }
+  .upgrade-btn {
+    background: var(--card);
+    border: 2px solid transparent;
+    border-radius: 10px;
+    padding: 10px 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text);
+    transition: all .15s;
+    font-family: inherit;
+    font-size: .82rem;
+    text-align: left;
+  }
+  .upgrade-btn:hover:not(:disabled) { border-color: var(--gold); }
+  .upgrade-btn:disabled { opacity: .35; cursor: not-allowed; }
+  .upgrade-btn .up-icon { font-size: 1.4rem; }
+  .upgrade-btn .up-info { flex: 1; }
+  .upgrade-btn .up-name { font-weight: 700; display: block; }
+  .upgrade-btn .up-desc { font-size: .7rem; color: var(--text-dim); }
+  .upgrade-btn .up-cost { color: var(--gold); font-weight: 800; font-size: .8rem; white-space: nowrap; }
+
+  /* ─── TABS (mobile) ─── */
+  .tab-bar {
+    display: none;
+    gap: 4px;
+    margin-bottom: 12px;
+  }
+  .tab-btn {
+    flex: 1;
+    padding: 8px;
+    border: none;
+    background: var(--card);
+    color: var(--text);
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: .8rem;
+  }
+  .tab-btn.active { background: var(--green); color: #111; }
+  @media (max-width: 1100px) {
+    .tab-bar { display: flex; }
+    .panel.hide-mobile { display: none; }
+  }
+
+  /* ─── LOG ─── */
+  .log {
+    margin-top: 12px;
+    padding: 10px;
+    background: rgba(0,0,0,.2);
+    border-radius: 8px;
+    max-height: 160px;
+    overflow-y: auto;
+    font-size: .72rem;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+
+  /* ─── PRESTIGE MODAL ─── */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.7);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: var(--panel);
+    border: 2px solid var(--gold);
+    border-radius: 16px;
+    padding: 24px;
+    max-width: 400px;
+    text-align: center;
+  }
+  .modal h2 { border: none; justify-content: center; font-size: 1.2rem; margin-bottom: 8px; }
+  .modal p { font-size: .85rem; color: var(--text-dim); margin-bottom: 16px; line-height: 1.5; }
+  .modal .btn-row { display: flex; gap: 10px; justify-content: center; }
+  .modal button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-family: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    font-size: .9rem;
+  }
+  .btn-prestige { background: var(--gold); color: #111; }
+  .btn-cancel { background: var(--card); color: var(--text); }
+
+  /* ─── SEASON BANNER ─── */
+  .season-banner {
+    text-align: center;
+    padding: 6px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: .85rem;
+    margin-bottom: 8px;
+  }
+
+  /* ─── ACHIEVEMENTS ─── */
+  .achievement-toast {
+    position: fixed;
+    top: 70px;
+    right: 20px;
+    background: linear-gradient(135deg, var(--card), var(--panel));
+    border: 2px solid var(--gold);
+    border-radius: 12px;
+    padding: 12px 18px;
+    z-index: 300;
+    animation: slideIn .4s, slideOut .4s 2.6s forwards;
+    font-size: .85rem;
+    font-weight: 700;
+    max-width: 300px;
+  }
+  @keyframes slideIn { from { transform: translateX(120%); } to { transform: translateX(0); } }
+  @keyframes slideOut { from { transform: translateX(0); opacity:1; } to { transform: translateX(120%); opacity:0; } }
+
+  /* ─── SAVE INDICATOR ─── */
+  .save-indicator {
+    position: fixed;
+    bottom: 12px;
+    right: 12px;
+    background: var(--green);
+    color: #111;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: .75rem;
+    font-weight: 700;
+    opacity: 0;
+    transition: opacity .3s;
+    z-index: 150;
+  }
+  .save-indicator.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🌾 Idle Farm</h1>
+  <div class="stats">
+    <span><i class="stat-icon">💰</i> <b id="coins">0</b></span>
+    <span><i class="stat-icon">⭐</i> <b id="prestige-pts">0</b></span>
+    <span><i class="stat-icon">📈</i> Nv. <b id="level">1</b></span>
+    <span id="season-display"><i class="stat-icon">🌱</i> <b>Primavera</b></span>
+  </div>
+</header>
+
+<div class="game-wrap">
+
+  <!-- LEFT: Crops -->
+  <div class="panel" id="panel-crops">
+    <h2>🌱 Culturas</h2>
+    <div class="crop-list" id="crop-list"></div>
+    <div class="log" id="log"></div>
+  </div>
+
+  <!-- CENTER: Farm -->
+  <div class="farm-container">
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="showTab('crops')">🌱 Culturas</button>
+      <button class="tab-btn" onclick="showTab('farm')">🌾 Fazenda</button>
+      <button class="tab-btn" onclick="showTab('upgrades')">⬆ Upgrades</button>
+    </div>
+    <div class="season-banner" id="season-banner">🌱 Primavera — Crescimento +20%</div>
+    <div class="farm-grid" id="farm-grid"></div>
+    <button class="upgrade-btn" style="max-width:520px;width:100%;justify-content:center;" onclick="openPrestige()">
+      <span class="up-icon">🌟</span>
+      <span class="up-info"><span class="up-name">Prestígio</span><span class="up-desc">Reinicie e ganhe bônus permanentes</span></span>
+    </button>
+  </div>
+
+  <!-- RIGHT: Upgrades -->
+  <div class="panel" id="panel-upgrades">
+    <h2>⬆ Melhorias</h2>
+    <div class="upgrade-list" id="upgrade-list"></div>
+  </div>
+</div>
+
+<!-- Prestige Modal -->
+<div class="modal-overlay" id="prestige-modal">
+  <div class="modal">
+    <h2>🌟 Prestígio</h2>
+    <p id="prestige-text">Reinicie a fazenda e ganhe pontos de prestígio que aumentam permanentemente seus ganhos!</p>
+    <div class="btn-row">
+      <button class="btn-prestige" onclick="doPrestige()">Prestigiar</button>
+      <button class="btn-cancel" onclick="closePrestige()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div class="save-indicator" id="save-ind">💾 Salvo!</div>
+
+<script>
+// ══════════════════════════════════════════
+//  GAME DATA
+// ══════════════════════════════════════════
+
+const CROPS = [
+  { id:'wheat',   name:'Trigo',      emoji:'🌾', time:3,    reward:5,     unlockLevel:1  },
+  { id:'carrot',  name:'Cenoura',    emoji:'🥕', time:6,    reward:15,    unlockLevel:2  },
+  { id:'tomato',  name:'Tomate',     emoji:'🍅', time:12,   reward:40,    unlockLevel:3  },
+  { id:'corn',    name:'Milho',      emoji:'🌽', time:20,   reward:80,    unlockLevel:5  },
+  { id:'potato',  name:'Batata',     emoji:'🥔', time:35,   reward:170,   unlockLevel:7  },
+  { id:'pumpkin', name:'Abóbora',    emoji:'🎃', time:60,   reward:400,   unlockLevel:10 },
+  { id:'grape',   name:'Uva',        emoji:'🍇', time:100,  reward:850,   unlockLevel:14 },
+  { id:'straw',   name:'Morango',    emoji:'🍓', time:180,  reward:2000,  unlockLevel:18 },
+  { id:'melon',   name:'Melancia',   emoji:'🍉', time:300,  reward:5500,  unlockLevel:23 },
+  { id:'golden',  name:'Fruta Dourada', emoji:'✨', time:600, reward:15000, unlockLevel:30 },
+];
+
+const UPGRADES = [
+  { id:'speed1',   name:'Adubo Rápido',     desc:'Crescimento 20% mais rápido',        icon:'⚡', baseCost:50,    mult:2.2, max:10, effect:'speed',   val:.20 },
+  { id:'value1',   name:'Colheita Premium',  desc:'Ganhos +25% por nível',              icon:'💎', baseCost:100,   mult:2.5, max:10, effect:'value',   val:.25 },
+  { id:'auto1',    name:'Espantalho',        desc:'Auto-colheita a cada 10s',           icon:'🤖', baseCost:300,   mult:3,   max:5,  effect:'auto',    val:1   },
+  { id:'plot1',    name:'Expansão',          desc:'Desbloqueia +5 lotes',               icon:'🏗️', baseCost:200,   mult:3,   max:4,  effect:'plots',   val:5   },
+  { id:'lucky1',   name:'Trevo da Sorte',    desc:'+5% chance de colheita dupla',       icon:'🍀', baseCost:500,   mult:2.8, max:8,  effect:'luck',    val:.05 },
+  { id:'offline1', name:'Gnomo Trabalhador', desc:'Ganhos offline +20%',                icon:'🧙', baseCost:1000,  mult:3,   max:5,  effect:'offline', val:.20 },
+  { id:'xp1',      name:'Livro de Sabedoria',desc:'XP +30% por nível',                 icon:'📚', baseCost:400,   mult:2.5, max:8,  effect:'xp',      val:.30 },
+  { id:'crit1',    name:'Fertilizante Mágico',desc:'+3% chance de colheita x5',         icon:'🔥', baseCost:2000,  mult:3.5, max:5,  effect:'crit',    val:.03 },
+];
+
+const SEASONS = [
+  { name:'Primavera', emoji:'🌱', color:'#2d5a27', bonus:'speed',  val:.20, desc:'Crescimento +20%' },
+  { name:'Verão',     emoji:'☀️', color:'#8a6d0b', bonus:'value',  val:.25, desc:'Ganhos +25%' },
+  { name:'Outono',    emoji:'🍂', color:'#7a3b0e', bonus:'luck',   val:.10, desc:'Sorte +10%' },
+  { name:'Inverno',   emoji:'❄️', color:'#1a3a5c', bonus:'xp',     val:.30, desc:'XP +30%' },
+];
+
+const ACHIEVEMENTS = [
+  { id:'first_harvest', name:'Primeira Colheita', desc:'Colha pela primeira vez', check: s => s.totalHarvests >= 1 },
+  { id:'harvest_50',    name:'Agricultor',        desc:'50 colheitas',            check: s => s.totalHarvests >= 50 },
+  { id:'harvest_500',   name:'Fazendeiro Mestre', desc:'500 colheitas',           check: s => s.totalHarvests >= 500 },
+  { id:'coins_1000',    name:'Rico',              desc:'Acumule 1.000 moedas',    check: s => s.totalCoins >= 1000 },
+  { id:'coins_100k',    name:'Magnata',           desc:'Acumule 100.000 moedas',  check: s => s.totalCoins >= 100000 },
+  { id:'level_10',      name:'Veterano',          desc:'Alcance nível 10',        check: s => s.level >= 10 },
+  { id:'level_30',      name:'Lendário',          desc:'Alcance nível 30',        check: s => s.level >= 30 },
+  { id:'prestige_1',    name:'Renascimento',      desc:'Faça prestígio 1 vez',    check: s => s.prestigeCount >= 1 },
+];
+
+// ══════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════
+
+let state = defaultState();
+
+function defaultState() {
+  return {
+    coins: 0,
+    totalCoins: 0,
+    level: 1,
+    xp: 0,
+    selectedCrop: 'wheat',
+    plots: new Array(10).fill(null),
+    unlockedPlots: 10,
+    upgrades: {},
+    prestigePoints: 0,
+    prestigeCount: 0,
+    prestigeMultiplier: 1,
+    season: 0,
+    seasonTimer: 0,
+    totalHarvests: 0,
+    achievements: [],
+    lastSave: Date.now(),
+  };
+}
+
+// ══════════════════════════════════════════
+//  HELPERS
+// ══════════════════════════════════════════
+
+function fmt(n) {
+  if (n >= 1e12) return (n/1e12).toFixed(1)+'T';
+  if (n >= 1e9)  return (n/1e9).toFixed(1)+'B';
+  if (n >= 1e6)  return (n/1e6).toFixed(1)+'M';
+  if (n >= 1e3)  return (n/1e3).toFixed(1)+'K';
+  return Math.floor(n).toString();
+}
+
+function xpForLevel(lv) { return Math.floor(50 * Math.pow(1.4, lv - 1)); }
+
+function getUpgradeLevel(id) { return state.upgrades[id] || 0; }
+
+function getUpgradeCost(u) {
+  return Math.floor(u.baseCost * Math.pow(u.mult, getUpgradeLevel(u.id)));
+}
+
+function getSpeedMultiplier() {
+  let m = 1;
+  m -= getUpgradeLevel('speed1') * .20;
+  const s = SEASONS[state.season];
+  if (s.bonus === 'speed') m -= s.val;
+  if (m < .1) m = .1;
+  return m;
+}
+
+function getValueMultiplier() {
+  let m = 1;
+  m += getUpgradeLevel('value1') * .25;
+  const s = SEASONS[state.season];
+  if (s.bonus === 'value') m += s.val;
+  m *= state.prestigeMultiplier;
+  return m;
+}
+
+function getLuckChance() {
+  let c = 0;
+  c += getUpgradeLevel('lucky1') * .05;
+  const s = SEASONS[state.season];
+  if (s.bonus === 'luck') c += s.val;
+  return Math.min(c, .80);
+}
+
+function getCritChance() {
+  return Math.min(getUpgradeLevel('crit1') * .03, .30);
+}
+
+function getXpMultiplier() {
+  let m = 1;
+  m += getUpgradeLevel('xp1') * .30;
+  const s = SEASONS[state.season];
+  if (s.bonus === 'xp') m += s.val;
+  return m;
+}
+
+function addLog(msg) {
+  const log = document.getElementById('log');
+  const line = document.createElement('div');
+  line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  log.prepend(line);
+  while (log.children.length > 50) log.removeChild(log.lastChild);
+}
+
+// ══════════════════════════════════════════
+//  RENDER
+// ══════════════════════════════════════════
+
+function renderCrops() {
+  const list = document.getElementById('crop-list');
+  list.innerHTML = '';
+  CROPS.forEach(c => {
+    const unlocked = state.level >= c.unlockLevel;
+    const btn = document.createElement('button');
+    btn.className = 'crop-btn' + (state.selectedCrop === c.id ? ' selected' : '') + (!unlocked ? ' locked-crop' : '');
+    const growTime = c.time * getSpeedMultiplier();
+    const reward = c.reward * getValueMultiplier();
+    btn.innerHTML = `
+      <span class="crop-emoji">${c.emoji}</span>
+      <span class="crop-info">
+        <span class="crop-name">${c.name}</span>
+        <span class="crop-detail">${unlocked ? `⏱ ${growTime.toFixed(1)}s  💰 ${fmt(reward)}` : `🔒 Nível ${c.unlockLevel}`}</span>
+      </span>`;
+    if (unlocked) btn.onclick = () => { state.selectedCrop = c.id; renderCrops(); };
+    list.appendChild(btn);
+  });
+}
+
+function renderGrid() {
+  const grid = document.getElementById('farm-grid');
+  const totalSlots = state.unlockedPlots + (25 - state.unlockedPlots);
+  grid.style.gridTemplateColumns = `repeat(5, 1fr)`;
+
+  while (grid.children.length < 25) {
+    const div = document.createElement('div');
+    div.className = 'plot';
+    grid.appendChild(div);
+  }
+  while (grid.children.length > 25) grid.removeChild(grid.lastChild);
+
+  for (let i = 0; i < 25; i++) {
+    const el = grid.children[i];
+    if (i >= state.unlockedPlots) {
+      el.className = 'plot locked';
+      el.innerHTML = '🔒';
+      el.onclick = null;
+      continue;
+    }
+    const plot = state.plots[i];
+    if (!plot) {
+      el.className = 'plot';
+      el.innerHTML = '<span class="emoji">➕</span><span class="timer">Vazio</span>';
+      el.onclick = () => plantCrop(i);
+    } else {
+      const crop = CROPS.find(c => c.id === plot.cropId);
+      const elapsed = (Date.now() - plot.plantedAt) / 1000;
+      const growTime = crop.time * getSpeedMultiplier();
+      const ready = elapsed >= growTime;
+      const pct = Math.min(elapsed / growTime * 100, 100);
+
+      el.className = 'plot' + (ready ? ' ready' : '');
+      el.innerHTML = `
+        <span class="emoji">${crop.emoji}</span>
+        <span class="timer">${ready ? '✅ Colher!' : Math.ceil(growTime - elapsed) + 's'}</span>
+        <div class="progress-bar" style="width:${pct}%"></div>`;
+
+      el.onclick = ready ? () => harvest(i) : null;
+    }
+  }
+}
+
+function renderUpgrades() {
+  const list = document.getElementById('upgrade-list');
+  list.innerHTML = '';
+  UPGRADES.forEach(u => {
+    const lv = getUpgradeLevel(u.id);
+    const maxed = lv >= u.max;
+    const cost = getUpgradeCost(u);
+    const btn = document.createElement('button');
+    btn.className = 'upgrade-btn';
+    btn.disabled = maxed || state.coins < cost;
+    btn.innerHTML = `
+      <span class="up-icon">${u.icon}</span>
+      <span class="up-info">
+        <span class="up-name">${u.name} (${lv}/${u.max})</span>
+        <span class="up-desc">${u.desc}</span>
+      </span>
+      <span class="up-cost">${maxed ? '✅ MAX' : '💰 ' + fmt(cost)}</span>`;
+    if (!maxed) btn.onclick = () => buyUpgrade(u);
+    list.appendChild(btn);
+  });
+}
+
+function renderHeader() {
+  document.getElementById('coins').textContent = fmt(state.coins);
+  document.getElementById('prestige-pts').textContent = state.prestigePoints;
+  document.getElementById('level').textContent = state.level;
+  const s = SEASONS[state.season];
+  document.getElementById('season-display').innerHTML = `<i class="stat-icon">${s.emoji}</i> <b>${s.name}</b>`;
+  const banner = document.getElementById('season-banner');
+  banner.textContent = `${s.emoji} ${s.name} — ${s.desc}`;
+  banner.style.background = s.color;
+}
+
+function render() {
+  renderHeader();
+  renderGrid();
+  renderCrops();
+  renderUpgrades();
+}
+
+// ══════════════════════════════════════════
+//  ACTIONS
+// ══════════════════════════════════════════
+
+function plantCrop(idx) {
+  const crop = CROPS.find(c => c.id === state.selectedCrop);
+  if (!crop || state.level < crop.unlockLevel) return;
+  state.plots[idx] = { cropId: crop.id, plantedAt: Date.now() };
+  addLog(`Plantou ${crop.emoji} ${crop.name}`);
+}
+
+function harvest(idx) {
+  const plot = state.plots[idx];
+  if (!plot) return;
+  const crop = CROPS.find(c => c.id === plot.cropId);
+  const growTime = crop.time * getSpeedMultiplier();
+  const elapsed = (Date.now() - plot.plantedAt) / 1000;
+  if (elapsed < growTime) return;
+
+  let reward = crop.reward * getValueMultiplier();
+  let label = '';
+
+  // Crit
+  if (Math.random() < getCritChance()) {
+    reward *= 5;
+    label = 'x5 CRIT!';
+  } else if (Math.random() < getLuckChance()) {
+    reward *= 2;
+    label = 'x2!';
+  }
+
+  reward = Math.floor(reward);
+  state.coins += reward;
+  state.totalCoins += reward;
+  state.totalHarvests++;
+
+  // XP
+  const xpGain = Math.floor((crop.reward / 5) * getXpMultiplier());
+  state.xp += xpGain;
+  while (state.xp >= xpForLevel(state.level)) {
+    state.xp -= xpForLevel(state.level);
+    state.level++;
+    addLog(`🎉 Subiu para nível ${state.level}!`);
+  }
+
+  // Float text
+  const grid = document.getElementById('farm-grid');
+  const el = grid.children[idx];
+  const ft = document.createElement('div');
+  ft.className = 'harvest-text';
+  ft.textContent = `+${fmt(reward)} ${label}`;
+  el.appendChild(ft);
+  setTimeout(() => ft.remove(), 800);
+
+  state.plots[idx] = null;
+  addLog(`Colheu ${crop.emoji} ${crop.name} → +${fmt(reward)} 💰`);
+  checkAchievements();
+}
+
+function buyUpgrade(u) {
+  const cost = getUpgradeCost(u);
+  if (state.coins < cost || getUpgradeLevel(u.id) >= u.max) return;
+  state.coins -= cost;
+  state.upgrades[u.id] = (state.upgrades[u.id] || 0) + 1;
+
+  if (u.effect === 'plots') {
+    const newSlots = u.val;
+    state.unlockedPlots = Math.min(state.unlockedPlots + newSlots, 25);
+    while (state.plots.length < state.unlockedPlots) state.plots.push(null);
+  }
+
+  addLog(`Comprou ${u.icon} ${u.name} nv.${getUpgradeLevel(u.id)}`);
+  render();
+}
+
+// ══════════════════════════════════════════
+//  AUTO HARVEST
+// ══════════════════════════════════════════
+
+let autoTimer = 0;
+function autoHarvest(dt) {
+  const autoLv = getUpgradeLevel('auto1');
+  if (autoLv <= 0) return;
+  const interval = Math.max(10 - autoLv * 1.5, 2);
+  autoTimer += dt;
+  if (autoTimer >= interval) {
+    autoTimer = 0;
+    for (let i = 0; i < state.unlockedPlots; i++) {
+      const plot = state.plots[i];
+      if (!plot) continue;
+      const crop = CROPS.find(c => c.id === plot.cropId);
+      const growTime = crop.time * getSpeedMultiplier();
+      const elapsed = (Date.now() - plot.plantedAt) / 1000;
+      if (elapsed >= growTime) {
+        harvest(i);
+        // Auto replant
+        state.plots[i] = { cropId: plot.cropId, plantedAt: Date.now() };
+      }
+    }
+  }
+}
+
+// ══════════════════════════════════════════
+//  SEASONS
+// ══════════════════════════════════════════
+
+const SEASON_DURATION = 120; // seconds
+
+function updateSeason(dt) {
+  state.seasonTimer += dt;
+  if (state.seasonTimer >= SEASON_DURATION) {
+    state.seasonTimer = 0;
+    state.season = (state.season + 1) % SEASONS.length;
+    const s = SEASONS[state.season];
+    addLog(`${s.emoji} Estação mudou para ${s.name}!`);
+  }
+}
+
+// ══════════════════════════════════════════
+//  PRESTIGE
+// ══════════════════════════════════════════
+
+function openPrestige() {
+  const pts = Math.floor(Math.sqrt(state.totalCoins / 5000));
+  document.getElementById('prestige-text').innerHTML =
+    `Ao prestigiar você ganha <b style="color:var(--gold)">${pts} ⭐</b> pontos de prestígio.<br>
+     Cada ponto aumenta seus ganhos em 10%.<br>
+     Total atual: <b>${state.prestigePoints} ⭐</b> (+${state.prestigePoints * 10}% ganhos).<br><br>
+     ${pts < 1 ? '⚠️ Você precisa de mais moedas para ganhar pontos!' : 'Tudo será reiniciado, mas os pontos são permanentes!'}`;
+  document.getElementById('prestige-modal').classList.add('show');
+}
+
+function closePrestige() {
+  document.getElementById('prestige-modal').classList.remove('show');
+}
+
+function doPrestige() {
+  const pts = Math.floor(Math.sqrt(state.totalCoins / 5000));
+  if (pts < 1) { closePrestige(); return; }
+
+  const keepPts = state.prestigePoints + pts;
+  const keepCount = state.prestigeCount + 1;
+  const keepAch = [...state.achievements];
+
+  state = defaultState();
+  state.prestigePoints = keepPts;
+  state.prestigeCount = keepCount;
+  state.prestigeMultiplier = 1 + keepPts * 0.10;
+  state.achievements = keepAch;
+
+  closePrestige();
+  addLog(`🌟 Prestígio! +${pts} pontos. Multiplicador: x${state.prestigeMultiplier.toFixed(1)}`);
+  saveGame();
+  render();
+}
+
+// ══════════════════════════════════════════
+//  ACHIEVEMENTS
+// ══════════════════════════════════════════
+
+function checkAchievements() {
+  ACHIEVEMENTS.forEach(a => {
+    if (state.achievements.includes(a.id)) return;
+    if (a.check(state)) {
+      state.achievements.push(a.id);
+      showAchievement(a);
+      addLog(`🏆 Conquista: ${a.name}!`);
+    }
+  });
+}
+
+function showAchievement(a) {
+  const toast = document.createElement('div');
+  toast.className = 'achievement-toast';
+  toast.innerHTML = `🏆 <b>${a.name}</b><br><small>${a.desc}</small>`;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 3200);
+}
+
+// ══════════════════════════════════════════
+//  SAVE / LOAD
+// ══════════════════════════════════════════
+
+function saveGame() {
+  state.lastSave = Date.now();
+  localStorage.setItem('idleFarm_save', JSON.stringify(state));
+  const ind = document.getElementById('save-ind');
+  ind.classList.add('show');
+  setTimeout(() => ind.classList.remove('show'), 1500);
+}
+
+function loadGame() {
+  const raw = localStorage.getItem('idleFarm_save');
+  if (!raw) return;
+  try {
+    const saved = JSON.parse(raw);
+    state = { ...defaultState(), ...saved };
+    state.prestigeMultiplier = 1 + state.prestigePoints * 0.10;
+
+    // Offline earnings
+    const offlineSec = (Date.now() - state.lastSave) / 1000;
+    if (offlineSec > 60) {
+      const offlineMult = 1 + getUpgradeLevel('offline1') * .20;
+      let earned = 0;
+      state.plots.forEach(plot => {
+        if (!plot) return;
+        const crop = CROPS.find(c => c.id === plot.cropId);
+        if (!crop) return;
+        const cycles = Math.floor(offlineSec / (crop.time * getSpeedMultiplier()));
+        earned += cycles * crop.reward * getValueMultiplier() * offlineMult;
+      });
+      if (earned > 0) {
+        earned = Math.floor(earned);
+        state.coins += earned;
+        state.totalCoins += earned;
+        addLog(`💤 Ganhos offline: +${fmt(earned)} 💰 (${Math.floor(offlineSec/60)} min)`);
+      }
+    }
+  } catch(e) { console.error('Load error', e); }
+}
+
+// ══════════════════════════════════════════
+//  MOBILE TABS
+// ══════════════════════════════════════════
+
+function showTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach((b,i) => {
+    b.classList.toggle('active', ['crops','farm','upgrades'][i] === tab);
+  });
+  document.getElementById('panel-crops').classList.toggle('hide-mobile', tab !== 'crops');
+  document.getElementById('panel-upgrades').classList.toggle('hide-mobile', tab !== 'upgrades');
+}
+
+// ══════════════════════════════════════════
+//  GAME LOOP
+// ══════════════════════════════════════════
+
+let lastTime = Date.now();
+let saveTimer = 0;
+
+function gameLoop() {
+  const now = Date.now();
+  const dt = (now - lastTime) / 1000;
+  lastTime = now;
+
+  updateSeason(dt);
+  autoHarvest(dt);
+
+  render();
+
+  saveTimer += dt;
+  if (saveTimer >= 30) {
+    saveTimer = 0;
+    saveGame();
+  }
+
+  requestAnimationFrame(gameLoop);
+}
+
+// ══════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════
+
+loadGame();
+render();
+gameLoop();
+
+// Save on close
+window.addEventListener('beforeunload', saveGame);
+</script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+module.exports = [
+  { id: 1, name: 'Vila Shinsoo', description: 'A pacífica vila do reino Shinsoo, protegida pelo Dragão Azul. Aqui os aventureiros iniciam sua jornada em meio a jardins serenos e dojos de treinamento.', level_min: 1, level_max: 5, kingdom_id: 1, type: 'village', has_resources: false },
+  { id: 2, name: 'Vila Chunjo', description: 'A vila fortificada do reino Chunjo, sob a proteção da Fênix Vermelha. Muralhas altas cercam praças de treinamento e forjas ativas.', level_min: 1, level_max: 5, kingdom_id: 2, type: 'village', has_resources: false },
+  { id: 3, name: 'Vila Jinno', description: 'A vila mercantil do reino Jinno, abençoada pelo Tigre Dourado. Mercados movimentados e templos dourados dominam a paisagem.', level_min: 1, level_max: 5, kingdom_id: 3, type: 'village', has_resources: false },
+  { id: 4, name: 'Campo de Batalha', description: 'Planícies vastas infestadas de criaturas selvagens. O primeiro teste para qualquer aventureiro que deixa a segurança da vila.', level_min: 1, level_max: 10, kingdom_id: null, type: 'field', has_resources: true },
+  { id: 5, name: 'Floresta Sombria', description: 'Uma floresta densa e escura habitada por orcs e aranhas gigantes. Árvores centenárias bloqueiam a luz do sol.', level_min: 8, level_max: 15, kingdom_id: null, type: 'forest', has_resources: true },
+  { id: 6, name: 'Mina Abandonada', description: 'Uma antiga mina tomada por golems e mortos-vivos. Rica em minérios, mas extremamente perigosa.', level_min: 15, level_max: 22, kingdom_id: null, type: 'mine', has_resources: true },
+  { id: 7, name: 'Ruínas Ancestrais', description: 'Ruínas de uma civilização antiga, agora infestada de mortos-vivos e cavaleiros negros. Segredos sombrios espreitam.', level_min: 22, level_max: 30, kingdom_id: null, type: 'ruins', has_resources: true },
+  { id: 8, name: 'Deserto Vermelho', description: 'Um deserto implacável habitado por nagas e criaturas do deserto. O calor escaldante testa até os mais resistentes.', level_min: 30, level_max: 38, kingdom_id: null, type: 'desert', has_resources: true },
+  { id: 9, name: 'Templo do Demônio', description: 'Um templo corrompido onde demônios e monges caídos espreitam. Energia sombria permeia cada pedra.', level_min: 38, level_max: 45, kingdom_id: null, type: 'temple', has_resources: true },
+  { id: 10, name: 'Caverna do Dragão', description: 'A covil dos dragões e os mais poderosos guerreiros do mundo. Apenas os mais fortes sobrevivem aqui.', level_min: 45, level_max: 55, kingdom_id: null, type: 'cave', has_resources: true }
+];
