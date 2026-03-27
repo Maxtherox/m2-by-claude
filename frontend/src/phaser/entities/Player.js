@@ -10,8 +10,9 @@ export class Player {
     };
 
     const textureKey = textureMap[classType] || 'player_warrior';
+    this._animKey = textureKey;
 
-    this.sprite = scene.physics.add.sprite(x, y, textureKey);
+    this.sprite = scene.physics.add.sprite(x, y, textureKey, 0);
     this.sprite.setCollideWorldBounds(true);
     this.sprite.setDepth(10);
     this.sprite.setData('entity', this);
@@ -27,6 +28,46 @@ export class Player {
     this.speed = 150;
     this.classType = classType;
     this.isMoving = false;
+    this._wasMoving = false;
+
+    // Shadow under player
+    this.shadow = scene.add.ellipse(x, y + 12, 20, 8, 0x000000, 0.3);
+    this.shadow.setDepth(9);
+
+    // Store tweens for cleanup
+    this._tweens = [];
+
+    // Start idle breathing animation
+    this._startIdleBreathing();
+  }
+
+  _startIdleBreathing() {
+    this._stopIdleBreathing();
+    this._idleTween = this.scene.tweens.add({
+      targets: this.sprite,
+      scaleY: 1.02,
+      duration: 1500,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
+    this._tweens.push(this._idleTween);
+  }
+
+  _stopIdleBreathing() {
+    if (this._idleTween) {
+      this._idleTween.stop();
+      this.sprite.setScale(1, 1);
+      this._idleTween = null;
+    }
+  }
+
+  _startWalkingBob() {
+    // Walking bob now handled by spritesheet animation only
+  }
+
+  _stopWalkingBob() {
+    // No-op
   }
 
   update(cursors, wasd) {
@@ -51,8 +92,29 @@ export class Player {
     if (vx < 0) this.sprite.setFlipX(true);
     else if (vx > 0) this.sprite.setFlipX(false);
 
-    // Update name label position
+    // Track movement state changes for animations
+    if (this.isMoving && !this._wasMoving) {
+      this._stopIdleBreathing();
+      this._startWalkingBob();
+      // Play walk sprite animation
+      const walkKey = `${this._animKey}_walk`;
+      if (this.scene.anims.exists(walkKey)) {
+        this.sprite.play(walkKey, true);
+      }
+    } else if (!this.isMoving && this._wasMoving) {
+      this._stopWalkingBob();
+      this._startIdleBreathing();
+      // Stop walk sprite animation and show standing frame
+      this.sprite.stop();
+      this.sprite.setFrame(0);
+    }
+    this._wasMoving = this.isMoving;
+
+    // Update name label and shadow position
     this.nameText.setPosition(this.sprite.x, this.sprite.y - 30);
+    if (this.shadow) {
+      this.shadow.setPosition(this.sprite.x, this.sprite.y + 12);
+    }
   }
 
   setName(name) {
@@ -69,6 +131,14 @@ export class Player {
   }
 
   destroy() {
+    // Stop all tweens
+    this._stopIdleBreathing();
+    this._stopWalkingBob();
+    if (this._tweens) {
+      this._tweens.forEach(t => { if (t && t.isPlaying) t.stop(); });
+      this._tweens = [];
+    }
+    if (this.shadow) this.shadow.destroy();
     if (this.sprite) this.sprite.destroy();
     if (this.nameText) this.nameText.destroy();
   }

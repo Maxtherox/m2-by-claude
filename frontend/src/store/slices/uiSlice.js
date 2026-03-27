@@ -19,7 +19,7 @@ const uiSlice = createSlice({
         state.activeMob = null;
       }
 
-      if (!['npc', 'shop', 'blacksmith', 'healer', 'trainer', 'storage'].includes(nextPanel)) {
+      if (!['npc', 'shop', 'blacksmith', 'healer', 'trainer', 'storage', 'dialog'].includes(nextPanel)) {
         state.activeNpc = null;
       }
     },
@@ -46,7 +46,8 @@ const uiSlice = createSlice({
       state.activeNpc = null;
       if (state.activePanel === 'npc' || state.activePanel === 'shop' ||
           state.activePanel === 'blacksmith' || state.activePanel === 'healer' ||
-          state.activePanel === 'trainer' || state.activePanel === 'storage') {
+          state.activePanel === 'trainer' || state.activePanel === 'storage' ||
+          state.activePanel === 'dialog') {
         state.activePanel = null;
       }
     },

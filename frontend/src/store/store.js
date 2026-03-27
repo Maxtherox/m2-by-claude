@@ -5,6 +5,10 @@ import combatReducer from './slices/combatSlice';
 import uiReducer from './slices/uiSlice';
 import gameReducer from './slices/gameSlice';
 import skillReducer from './slices/skillSlice';
+import questReducer from './slices/questSlice';
+import dungeonReducer from './slices/dungeonSlice';
+import hotbarReducer from './slices/hotbarSlice';
+import saveReducer from './slices/saveSlice';
 
 export const store = configureStore({
   reducer: {
@@ -14,5 +18,9 @@ export const store = configureStore({
     ui: uiReducer,
     game: gameReducer,
     skills: skillReducer,
+    quests: questReducer,
+    dungeons: dungeonReducer,
+    hotbar: hotbarReducer,
+    saves: saveReducer,
   },
 });

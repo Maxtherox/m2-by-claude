@@ -20,6 +20,11 @@ export function createGame(parentId, store) {
       mode: Phaser.Scale.FIT,
       autoCenter: Phaser.Scale.CENTER_BOTH
     },
+    input: {
+      mouse: {
+        preventDefaultWheel: true
+      }
+    },
     physics: {
       default: 'arcade',
       arcade: {

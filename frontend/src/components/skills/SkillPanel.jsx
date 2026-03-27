@@ -1,73 +1,324 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { fetchClassSkills, fetchCharacterSkills } from '../../store/slices/skillSlice';
+import {
+  fetchClassSkills,
+  fetchCharacterSkills,
+  learnSkill,
+  upgradeSkill,
+  readSkillBook,
+  useSpiritStone,
+  clearProgressionResult,
+} from '../../store/slices/skillSlice';
+import { loadCharacter } from '../../store/slices/characterSlice';
 import { closePanel } from '../../store/slices/uiSlice';
+
+const DMG_TYPE_LABELS = {
+  physical: { label: 'Fisico', color: 'text-red-400' },
+  magical: { label: 'Magico', color: 'text-blue-400' },
+  hybrid: { label: 'Hibrido', color: 'text-purple-400' },
+  heal: { label: 'Cura', color: 'text-green-400' },
+  buff: { label: 'Buff', color: 'text-yellow-400' },
+  debuff: { label: 'Debuff', color: 'text-orange-400' },
+};
+
+const STAGE_COLORS = {
+  NORMAL: 'text-gray-300',
+  MASTER: 'text-metin-cyan',
+  GRAND_MASTER: 'text-metin-gold',
+  PERFECT_MASTER: 'text-amber-300',
+};
 
 export default function SkillPanel() {
   const dispatch = useDispatch();
   const character = useSelector((s) => s.character.data);
-  const { classSkills, characterSkills } = useSelector((s) => s.skills);
+  const { classSkills, characterSkills, lastProgressionResult } = useSelector((s) => s.skills);
+  const [selectedSkillId, setSelectedSkillId] = useState(null);
+  const [feedback, setFeedback] = useState(null);
 
   useEffect(() => {
     if (character?.class_id) dispatch(fetchClassSkills(character.class_id));
     if (character?.id) dispatch(fetchCharacterSkills(character.id));
   }, [dispatch, character?.class_id, character?.id]);
 
+  // Handle progression result feedback
+  useEffect(() => {
+    if (lastProgressionResult) {
+      const r = lastProgressionResult;
+      const msg = r.success
+        ? `Sucesso! ${r.consumed_item_type === 'SKILL_BOOK' ? 'Livro lido' : 'Pedra Espiritual usada'} - ${r.new_stage} ${r.new_progress}`
+        : `Falhou: ${r.failure_reason || 'Tentativa sem sucesso'}`;
+      setFeedback({ text: msg, type: r.success ? 'success' : 'fail' });
+      dispatch(clearProgressionResult());
+      // Refresh data
+      if (character?.id) {
+        dispatch(fetchCharacterSkills(character.id));
+        dispatch(loadCharacter(character.id));
+      }
+      setTimeout(() => setFeedback(null), 4000);
+    }
+  }, [lastProgressionResult, dispatch, character?.id]);
+
   const learnedMap = {};
   (Array.isArray(characterSkills) ? characterSkills : []).forEach((s) => {
     learnedMap[s.skill_id] = s;
   });
 
-  const dmgTypeColor = {
-    physical: 'text-red-400',
-    magical: 'text-blue-400',
-    hybrid: 'text-purple-400',
-    heal: 'text-green-400',
-    buff: 'text-yellow-400',
-    debuff: 'text-orange-400',
+  const selectedSkill = selectedSkillId
+    ? (Array.isArray(classSkills) ? classSkills : []).find((s) => s.id === selectedSkillId)
+    : null;
+  const selectedLearned = selectedSkillId ? learnedMap[selectedSkillId] : null;
+
+  const refreshAfterAction = useCallback(() => {
+    if (character?.id) {
+      dispatch(fetchCharacterSkills(character.id));
+      dispatch(loadCharacter(character.id));
+    }
+  }, [dispatch, character?.id]);
+
+  const handleLearn = async () => {
+    if (!selectedSkillId || !character?.id) return;
+    try {
+      await dispatch(learnSkill({ charId: character.id, skillId: selectedSkillId })).unwrap();
+      setFeedback({ text: 'Habilidade aprendida!', type: 'success' });
+      refreshAfterAction();
+    } catch (e) {
+      setFeedback({ text: e || 'Erro ao aprender', type: 'fail' });
+    }
+    setTimeout(() => setFeedback(null), 3000);
   };
 
+  const handleUpgrade = async () => {
+    if (!selectedSkillId || !character?.id) return;
+    try {
+      await dispatch(upgradeSkill({ charId: character.id, skillId: selectedSkillId })).unwrap();
+      setFeedback({ text: 'Habilidade evoluida!', type: 'success' });
+      refreshAfterAction();
+    } catch (e) {
+      setFeedback({ text: e || 'Erro ao evoluir', type: 'fail' });
+    }
+    setTimeout(() => setFeedback(null), 3000);
+  };
+
+  const handleReadBook = () => {
+    if (!selectedSkillId || !character?.id) return;
+    dispatch(readSkillBook({ charId: character.id, skillId: selectedSkillId }));
+  };
+
+  const handleSpiritStone = () => {
+    if (!selectedSkillId || !character?.id) return;
+    dispatch(useSpiritStone({ charId: character.id, skillId: selectedSkillId }));
+  };
+
+  const sp = character?.skill_points || 0;
+  const honor = character?.honor || 0;
+  const honorRank = character?.honor_rank || 'Neutra';
+
   return (
-    <div className="metin-panel-gold p-4 w-[400px]">
-      <div className="flex justify-between items-center mb-3">
-        <h2 className="panel-title !mb-0 !pb-0 !border-0">Habilidades</h2>
-        <button onClick={() => dispatch(closePanel())} className="text-gray-500 hover:text-metin-gold">X</button>
+    <div className="metin-panel-gold p-0 w-[440px] select-none">
+      {/* Header */}
+      <div className="px-4 pt-3 pb-2 flex justify-between items-start">
+        <h2 className="text-metin-gold font-medieval text-lg tracking-wide">Habilidades</h2>
+        <button onClick={() => dispatch(closePanel())} className="text-gray-600 hover:text-metin-gold text-sm mt-1">✕</button>
       </div>
-      <div className="divider-gold" />
 
-      <div className="text-xs text-gray-400 mb-2">Skill Points: {character?.skill_points || 0}</div>
+      {/* Resources bar */}
+      <div className="px-4 pb-2 flex gap-4 text-xs">
+        <span className="text-gray-500">Skill Pts: <span className="text-metin-cyan">{sp}</span></span>
+        <span className="text-gray-500">Honra: <span className="text-amber-500">{honor}</span></span>
+        <span className="text-gray-500 text-[10px]">({honorRank})</span>
+      </div>
 
-      <div className="space-y-2 max-h-[60vh] overflow-y-auto">
-        {(Array.isArray(classSkills) ? classSkills : []).map((skill) => {
-          const learned = learnedMap[skill.id];
-          return (
-            <div key={skill.id} className={`metin-panel p-3 border ${learned ? 'border-metin-border-gold' : 'border-metin-border opacity-60'}`}>
-              <div className="flex justify-between items-start">
-                <div>
-                  <span className="text-sm font-medieval text-metin-gold">{skill.name}</span>
-                  <span className={`ml-2 text-xs ${dmgTypeColor[skill.damage_type] || 'text-gray-400'}`}>
-                    [{skill.damage_type}]
+      <div className="divider-gold mx-4" />
+
+      {/* Feedback banner */}
+      {feedback && (
+        <div className={`mx-4 mt-2 px-3 py-1.5 text-xs rounded ${
+          feedback.type === 'success' ? 'bg-green-900/40 text-green-300 border border-green-700/50' : 'bg-red-900/40 text-red-300 border border-red-700/50'
+        }`}>
+          {feedback.text}
+        </div>
+      )}
+
+      <div className="flex" style={{ minHeight: '350px' }}>
+        {/* Skills list */}
+        <div className="w-[200px] border-r border-metin-border/30 overflow-y-auto max-h-[55vh] p-2 space-y-1">
+          {(Array.isArray(classSkills) ? classSkills : []).map((skill) => {
+            const learned = learnedMap[skill.id];
+            const isSelected = selectedSkillId === skill.id;
+            const stage = learned?.progress_stage || 'NORMAL';
+
+            return (
+              <button
+                key={skill.id}
+                onClick={() => setSelectedSkillId(skill.id)}
+                className={`w-full text-left px-2 py-1.5 rounded transition-all text-xs ${
+                  isSelected
+                    ? 'bg-metin-gold/10 border border-metin-border-gold'
+                    : learned
+                    ? 'hover:bg-metin-dark-lighter border border-transparent'
+                    : 'opacity-50 hover:opacity-70 border border-transparent'
+                }`}
+              >
+                <div className="flex justify-between items-center">
+                  <span className={`font-medieval ${learned ? 'text-metin-gold' : 'text-gray-600'}`}>
+                    {skill.name}
+                  </span>
+                  {learned && (
+                    <span className={`text-[10px] font-mono ${STAGE_COLORS[stage] || 'text-gray-400'}`}>
+                      {learned.progression_label || `Lv.${learned.level}`}
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-1 mt-0.5">
+                  <span className={`text-[10px] ${DMG_TYPE_LABELS[skill.damage_type]?.color || 'text-gray-500'}`}>
+                    {DMG_TYPE_LABELS[skill.damage_type]?.label || skill.damage_type}
+                  </span>
+                  {learned?.cooldown_remaining > 0 && (
+                    <span className="text-[10px] text-red-400 ml-auto">CD: {learned.cooldown_remaining}</span>
+                  )}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Detail panel */}
+        <div className="flex-1 p-3">
+          {!selectedSkill ? (
+            <div className="text-gray-600 text-xs text-center mt-10">Selecione uma habilidade</div>
+          ) : (
+            <div className="space-y-3">
+              {/* Skill header */}
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-metin-gold font-medieval text-sm">{selectedSkill.name}</span>
+                  <span className={`text-[10px] ${DMG_TYPE_LABELS[selectedSkill.damage_type]?.color || 'text-gray-400'}`}>
+                    [{DMG_TYPE_LABELS[selectedSkill.damage_type]?.label || selectedSkill.damage_type}]
                   </span>
                 </div>
-                {learned && <span className="text-xs text-metin-green">Lv.{learned.level || learned.skill_level}</span>}
-                {!learned && <span className="text-xs text-gray-600">Nao aprendida</span>}
+                <p className="text-[11px] text-gray-400 mt-1 leading-relaxed">{selectedSkill.description}</p>
               </div>
-              <p className="text-xs text-gray-400 mt-1">{skill.description}</p>
-              <div className="flex gap-3 text-xs text-gray-500 mt-1">
-                <span>MP: {skill.mp_cost}</span>
-                <span>Dano: {skill.base_damage}</span>
-                <span>CD: {skill.cooldown}</span>
-                <span>Lv.Req: {skill.level_required}</span>
+
+              <div className="divider" />
+
+              {/* Stats */}
+              <div className="grid grid-cols-2 gap-1 text-[11px]">
+                <DetailLine label="Dano Base" value={selectedSkill.base_damage} />
+                <DetailLine label="Custo MP" value={selectedSkill.mp_cost} />
+                <DetailLine label="Cooldown" value={`${selectedSkill.cooldown}t`} />
+                <DetailLine label="Lv. Req." value={selectedSkill.level_required} />
+                <DetailLine label="Escala" value={selectedSkill.scaling_attribute || '—'} />
+                <DetailLine label="Max Level" value={selectedSkill.max_level} />
               </div>
-              {skill.effect_type && (
-                <div className="text-xs text-metin-orange mt-1">
-                  Efeito: {skill.effect_type} ({skill.effect_chance}% chance, {skill.effect_duration} turnos)
+
+              {selectedSkill.effect_type && (
+                <div className="text-[11px] text-metin-orange">
+                  Efeito: {selectedSkill.effect_type} ({selectedSkill.effect_chance}%, {selectedSkill.effect_duration}t)
+                </div>
+              )}
+
+              <div className="divider" />
+
+              {/* Progression info */}
+              {selectedLearned ? (
+                <div className="space-y-2">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-gray-500">Progressao</span>
+                    <span className={`font-mono ${STAGE_COLORS[selectedLearned.progress_stage] || 'text-gray-300'}`}>
+                      {selectedLearned.progression_label || `Lv.${selectedLearned.level}`}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-gray-500">Estagio</span>
+                    <span className="text-gray-300">{formatStage(selectedLearned.progress_stage)}</span>
+                  </div>
+                  {selectedLearned.times_used > 0 && (
+                    <div className="flex justify-between text-xs">
+                      <span className="text-gray-500">Usos</span>
+                      <span className="text-gray-400">{selectedLearned.times_used}</span>
+                    </div>
+                  )}
+
+                  {/* Action buttons */}
+                  <div className="pt-2 space-y-1.5">
+                    {/* Normal upgrade */}
+                    {selectedLearned.can_normal_upgrade && sp > 0 && (
+                      <button onClick={handleUpgrade} className="metin-btn metin-btn-sm w-full text-xs">
+                        Evoluir (1 Skill Pt)
+                      </button>
+                    )}
+                    {selectedLearned.can_normal_upgrade && sp === 0 && (
+                      <div className="text-[10px] text-gray-600 text-center">Sem skill points</div>
+                    )}
+
+                    {/* Master transition notice */}
+                    {selectedLearned.is_master_transition && (
+                      <div className="text-[10px] text-metin-cyan text-center">
+                        Atingiu Mestre! Use livros para progredir.
+                      </div>
+                    )}
+
+                    {/* Read book */}
+                    {selectedLearned.can_read_book && (
+                      <button onClick={handleReadBook} className="metin-btn metin-btn-sm w-full text-xs !bg-cyan-900/50 !border-cyan-700/50 hover:!bg-cyan-800/50">
+                        Ler Livro ({Math.round(60)}% chance)
+                      </button>
+                    )}
+
+                    {/* Spirit stone */}
+                    {selectedLearned.can_use_spirit_stone && (
+                      <button onClick={handleSpiritStone} className="metin-btn metin-btn-sm w-full text-xs !bg-amber-900/50 !border-amber-700/50 hover:!bg-amber-800/50">
+                        Pedra Espiritual ({Math.round(30)}% · -50 Honra)
+                      </button>
+                    )}
+
+                    {/* Perfect master badge */}
+                    {selectedLearned.progress_stage === 'PERFECT_MASTER' && (
+                      <div className="text-center text-xs text-amber-300 font-medieval">
+                        Perfect Master
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="text-xs text-gray-600 text-center">Nao aprendida</div>
+                  {character?.level >= selectedSkill.level_required && sp > 0 ? (
+                    <button onClick={handleLearn} className="metin-btn metin-btn-sm w-full text-xs">
+                      Aprender (1 Skill Pt)
+                    </button>
+                  ) : (
+                    <div className="text-[10px] text-gray-600 text-center">
+                      {character?.level < selectedSkill.level_required
+                        ? `Requer nivel ${selectedSkill.level_required}`
+                        : 'Sem skill points'}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
-          );
-        })}
+          )}
+        </div>
       </div>
     </div>
   );
+}
+
+function DetailLine({ label, value }) {
+  return (
+    <div className="flex justify-between">
+      <span className="text-gray-600">{label}</span>
+      <span className="text-gray-300">{value}</span>
+    </div>
+  );
+}
+
+function formatStage(stage) {
+  const map = {
+    NORMAL: 'Normal',
+    MASTER: 'Mestre',
+    GRAND_MASTER: 'Grand Master',
+    PERFECT_MASTER: 'Perfect Master',
+  };
+  return map[stage] || stage;
 }

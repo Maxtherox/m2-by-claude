@@ -29,6 +29,21 @@ export class WorldScene extends Phaser.Scene {
     this.currentAreaName = '';
     this.currentAreaDataRef = null;
     this.storeUnsubscribe = null;
+
+    // Atmospheric visual effects state
+    this.ambientParticles = [];
+    this.lightingOverlay = null;
+    this.waterTweens = [];
+    this.fireflyTimer = null;
+    this.crystalTimer = null;
+
+    // Camera zoom state
+    this.zoomLevel = 1.5;
+    this.targetZoom = 1.5;
+    this.minZoom = 0.5;
+    this.maxZoom = 3.0;
+    this.zoomStep = 0.1;
+    this.zoomLerpSpeed = 0.1;
   }
 
   create() {
@@ -46,6 +61,9 @@ export class WorldScene extends Phaser.Scene {
     this.currentAreaType = areaContext.areaType || 'village';
     this.currentAreaName = areaContext.areaName || 'Vila Inicial';
     this.currentAreaDataRef = areaContext.areaDetails;
+
+    // Generate shared textures for atmospheric effects
+    this.createEffectTextures();
 
     // Build the map
     const layout = getAreaLayout(this.currentAreaType);
@@ -72,9 +90,29 @@ export class WorldScene extends Phaser.Scene {
     // Place portals
     this.placePortals(layout);
 
+    // Setup atmospheric visual effects
+    this.createAmbientParticles(this.currentAreaType);
+    this.createLightingOverlay(this.currentAreaType);
+    this.createWaterShimmer();
+
     // Setup camera
     this.cameras.main.setBounds(0, 0, MAP_WIDTH, MAP_HEIGHT);
     this.cameras.main.startFollow(this.player.sprite, true, 0.08, 0.08);
+    this.cameras.main.setZoom(this.zoomLevel);
+
+    // Camera zoom controls - mouse wheel (throttled)
+    this._lastWheelTime = 0;
+    this.input.on('wheel', (pointer, gameObjects, deltaX, deltaY) => {
+      const now = Date.now();
+      if (now - this._lastWheelTime < 80) return; // throttle rapid scroll
+      this._lastWheelTime = now;
+
+      if (deltaY < 0) {
+        this.targetZoom = Math.min(this.targetZoom + this.zoomStep, this.maxZoom);
+      } else if (deltaY > 0) {
+        this.targetZoom = Math.max(this.targetZoom - this.zoomStep, this.minZoom);
+      }
+    });
 
     // Setup keyboard input
     this.cursors = this.input.keyboard.createCursorKeys();
@@ -84,6 +122,20 @@ export class WorldScene extends Phaser.Scene {
       S: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S),
       D: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D)
     };
+
+    // Prevent browser from capturing game keys (fixes arrow keys scrolling the page)
+    this.input.keyboard.addCapture([
+      Phaser.Input.Keyboard.KeyCodes.UP,
+      Phaser.Input.Keyboard.KeyCodes.DOWN,
+      Phaser.Input.Keyboard.KeyCodes.LEFT,
+      Phaser.Input.Keyboard.KeyCodes.RIGHT,
+      Phaser.Input.Keyboard.KeyCodes.W,
+      Phaser.Input.Keyboard.KeyCodes.A,
+      Phaser.Input.Keyboard.KeyCodes.S,
+      Phaser.Input.Keyboard.KeyCodes.D,
+      Phaser.Input.Keyboard.KeyCodes.SPACE,
+      Phaser.Input.Keyboard.KeyCodes.E,
+    ]);
 
     this.keyE = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
     this.keyI = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.I);
@@ -106,6 +158,25 @@ export class WorldScene extends Phaser.Scene {
     });
     this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.C).on('down', () => {
       store?.dispatch(setActivePanel('status'));
+    });
+
+    // Camera zoom keyboard shortcuts
+    this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.PLUS).on('down', () => {
+      this.targetZoom = Math.min(this.targetZoom + this.zoomStep, this.maxZoom);
+    });
+    this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.MINUS).on('down', () => {
+      this.targetZoom = Math.max(this.targetZoom - this.zoomStep, this.minZoom);
+    });
+    // Numpad +/- as well
+    this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.NUMPAD_ADD).on('down', () => {
+      this.targetZoom = Math.min(this.targetZoom + this.zoomStep, this.maxZoom);
+    });
+    this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.NUMPAD_SUBTRACT).on('down', () => {
+      this.targetZoom = Math.max(this.targetZoom - this.zoomStep, this.minZoom);
+    });
+    // Reset zoom with 0
+    this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ZERO).on('down', () => {
+      this.targetZoom = 1.5;
     });
 
     // Launch UI overlay
@@ -180,6 +251,18 @@ export class WorldScene extends Phaser.Scene {
       }
     }
 
+    // Extra grass variety for areas using tileset ground
+    const grassVariants = ['tsg_grass2', 'tsg_grass3', 'tsg_grass4', 'tsg_grass5'];
+    if (baseTile.startsWith('tsg_')) {
+      for (let row = 0; row < MAP_ROWS; row++) {
+        for (let col = 0; col < MAP_COLS; col++) {
+          if (grid[row][col] === baseTile && Math.random() < 0.3) {
+            grid[row][col] = grassVariants[Math.floor(Math.random() * grassVariants.length)];
+          }
+        }
+      }
+    }
+
     // Render tiles
     for (let row = 0; row < MAP_ROWS; row++) {
       for (let col = 0; col < MAP_COLS; col++) {
@@ -200,7 +283,16 @@ export class WorldScene extends Phaser.Scene {
     this.props = [];
 
     for (const propData of (layout.props || [])) {
-      const prop = this.add.image(propData.x, propData.y, propData.key);
+      const key = propData.key || propData.type;
+      let prop;
+
+      if (propData.anim) {
+        prop = this.add.sprite(propData.x, propData.y, key);
+        prop.play(propData.anim);
+      } else {
+        prop = this.add.image(propData.x, propData.y, key);
+      }
+
       prop.setScale(propData.scale || 1);
       prop.setDepth((propData.depth ?? propData.y) || 2);
       prop.setAlpha(propData.alpha ?? 1);
@@ -463,6 +555,12 @@ export class WorldScene extends Phaser.Scene {
     this.placeResources(layout, store);
     this.placePortals(layout);
 
+    // Recreate atmospheric effects for new area
+    this.cleanupAtmosphericEffects();
+    this.createAmbientParticles(areaType);
+    this.createLightingOverlay(areaType);
+    this.createWaterShimmer();
+
     // Move player to spawn
     this.player.setPosition(layout.playerSpawn.x, layout.playerSpawn.y);
 
@@ -500,6 +598,15 @@ export class WorldScene extends Phaser.Scene {
 
   update(time, delta) {
     if (!this.player) return;
+
+    // Smooth camera zoom interpolation
+    if (Math.abs(this.zoomLevel - this.targetZoom) > 0.005) {
+      this.zoomLevel += (this.targetZoom - this.zoomLevel) * this.zoomLerpSpeed;
+      this.cameras.main.setZoom(this.zoomLevel);
+    } else if (this.zoomLevel !== this.targetZoom) {
+      this.zoomLevel = this.targetZoom;
+      this.cameras.main.setZoom(this.zoomLevel);
+    }
 
     const store = window.__GAME_STORE__;
     const activePanel = store?.getState()?.ui?.activePanel || null;
@@ -639,5 +746,288 @@ export class WorldScene extends Phaser.Scene {
 
     for (const ts of this.tileSprites) ts.destroy();
     this.tileSprites = [];
+
+    // Cleanup atmospheric effects
+    this.cleanupAtmosphericEffects();
+  }
+
+  // ===== ATMOSPHERIC VISUAL EFFECTS =====
+
+  createEffectTextures() {
+    // Particle dot texture (white circle, tinted per-use)
+    if (!this.textures.exists('particle_dot')) {
+      const particleGfx = this.make.graphics({ add: false });
+      particleGfx.fillStyle(0xffffff);
+      particleGfx.fillCircle(4, 4, 4);
+      particleGfx.generateTexture('particle_dot', 8, 8);
+      particleGfx.destroy();
+    }
+
+  }
+
+  createAmbientParticles(areaType) {
+    const configs = {
+      village: [{
+        x: { min: 0, max: MAP_WIDTH },
+        y: { min: 0, max: MAP_HEIGHT },
+        emitZone: undefined,
+        speed: { min: 5, max: 15 },
+        angle: { min: 250, max: 290 },
+        scale: { start: 0.3, end: 0.1 },
+        alpha: { start: 0.4, end: 0 },
+        lifespan: 6000,
+        frequency: 300,
+        tint: [0xf5deb3, 0xffffff],
+        quantity: 1,
+        blendMode: 'NORMAL'
+      }],
+      field: [{
+        x: { min: 0, max: MAP_WIDTH },
+        y: { min: MAP_HEIGHT * 0.3, max: MAP_HEIGHT },
+        speed: { min: 20, max: 50 },
+        angle: { min: 170, max: 190 },
+        scale: { start: 0.25, end: 0.1 },
+        alpha: { start: 0.5, end: 0 },
+        lifespan: 4000,
+        frequency: 200,
+        tint: [0x66cc66, 0x88dd44, 0x44aa22],
+        quantity: 1,
+        blendMode: 'NORMAL'
+      }],
+      forest: [
+        // Falling leaves
+        {
+          x: { min: 0, max: MAP_WIDTH },
+          y: { min: -10, max: 0 },
+          speed: { min: 10, max: 30 },
+          angle: { min: 80, max: 100 },
+          scale: { start: 0.4, end: 0.2 },
+          alpha: { start: 0.7, end: 0.1 },
+          lifespan: 8000,
+          frequency: 400,
+          tint: [0xdd8833, 0xcc6622, 0x66aa44, 0x88cc33],
+          quantity: 1,
+          blendMode: 'NORMAL',
+          rotate: { min: -180, max: 180 },
+          gravityY: 8
+        }
+      ],
+      mine: [
+        // Dust falling from ceiling
+        {
+          x: { min: 0, max: MAP_WIDTH },
+          y: { min: -5, max: 0 },
+          speed: { min: 5, max: 20 },
+          angle: { min: 85, max: 95 },
+          scale: { start: 0.2, end: 0.05 },
+          alpha: { start: 0.35, end: 0 },
+          lifespan: 5000,
+          frequency: 250,
+          tint: [0x888888, 0x999999, 0xaaaaaa],
+          quantity: 1,
+          blendMode: 'NORMAL',
+          gravityY: 10
+        }
+      ],
+      cave: [
+        // Dust falling from ceiling (same as mine)
+        {
+          x: { min: 0, max: MAP_WIDTH },
+          y: { min: -5, max: 0 },
+          speed: { min: 5, max: 20 },
+          angle: { min: 85, max: 95 },
+          scale: { start: 0.2, end: 0.05 },
+          alpha: { start: 0.35, end: 0 },
+          lifespan: 5000,
+          frequency: 250,
+          tint: [0x888888, 0x999999, 0xaaaaaa],
+          quantity: 1,
+          blendMode: 'NORMAL',
+          gravityY: 10
+        }
+      ],
+      desert: [{
+        x: { min: 0, max: MAP_WIDTH },
+        y: { min: 0, max: MAP_HEIGHT },
+        speed: { min: 60, max: 120 },
+        angle: { min: 170, max: 185 },
+        scale: { start: 0.2, end: 0.05 },
+        alpha: { start: 0.5, end: 0 },
+        lifespan: 3000,
+        frequency: 80,
+        tint: [0xdec58f, 0xc8a96e, 0xe8d5a0],
+        quantity: 2,
+        blendMode: 'NORMAL'
+      }],
+      temple: [{
+        x: { min: 0, max: MAP_WIDTH },
+        y: { min: 0, max: MAP_HEIGHT },
+        speed: { min: 8, max: 20 },
+        angle: { min: 0, max: 360 },
+        scale: { start: 0.35, end: 0.1 },
+        alpha: { start: 0.5, end: 0 },
+        lifespan: 5000,
+        frequency: 250,
+        tint: [0x9966ff, 0x6644cc, 0x4488ff, 0x7755dd],
+        quantity: 1,
+        blendMode: 'ADD'
+      }],
+      ruins: [{
+        x: { min: 0, max: MAP_WIDTH },
+        y: { min: MAP_HEIGHT * 0.5, max: MAP_HEIGHT },
+        speed: { min: 5, max: 18 },
+        angle: { min: 250, max: 290 },
+        scale: { start: 0.3, end: 0.05 },
+        alpha: { start: 0.6, end: 0 },
+        lifespan: 6000,
+        frequency: 300,
+        tint: [0xff6633, 0xcc4422, 0xff8844],
+        quantity: 1,
+        blendMode: 'ADD'
+      }]
+    };
+
+    const emitterConfigs = configs[areaType] || configs.field;
+
+    for (const cfg of emitterConfigs) {
+      const emitter = this.add.particles(0, 0, 'particle_dot', {
+        x: cfg.x,
+        y: cfg.y,
+        speed: cfg.speed,
+        angle: cfg.angle,
+        scale: cfg.scale,
+        alpha: cfg.alpha,
+        lifespan: cfg.lifespan,
+        frequency: cfg.frequency,
+        tint: cfg.tint,
+        quantity: cfg.quantity || 1,
+        blendMode: cfg.blendMode || 'NORMAL',
+        rotate: cfg.rotate || undefined,
+        gravityY: cfg.gravityY || 0
+      });
+      emitter.setDepth(50);
+      this.ambientParticles.push(emitter);
+    }
+
+    // Forest fireflies - random sparkles via timer
+    if (areaType === 'forest') {
+      this.fireflyTimer = this.time.addEvent({
+        delay: 800,
+        loop: true,
+        callback: () => {
+          const fx = Phaser.Math.Between(0, MAP_WIDTH);
+          const fy = Phaser.Math.Between(0, MAP_HEIGHT);
+          const sparkle = this.add.image(fx, fy, 'particle_dot');
+          sparkle.setScale(0.3);
+          sparkle.setTint(0xeeff66);
+          sparkle.setAlpha(0);
+          sparkle.setDepth(50);
+          sparkle.setBlendMode(Phaser.BlendModes.ADD);
+          this.tweens.add({
+            targets: sparkle,
+            alpha: { from: 0, to: 0.8 },
+            scale: { from: 0.2, to: 0.4 },
+            duration: 600,
+            yoyo: true,
+            onComplete: () => sparkle.destroy()
+          });
+        }
+      });
+    }
+
+    // Mine/cave crystal sparkle
+    if (areaType === 'mine' || areaType === 'cave') {
+      this.crystalTimer = this.time.addEvent({
+        delay: 1200,
+        loop: true,
+        callback: () => {
+          const cx = Phaser.Math.Between(0, MAP_WIDTH);
+          const cy = Phaser.Math.Between(0, MAP_HEIGHT);
+          const sparkle = this.add.image(cx, cy, 'particle_dot');
+          sparkle.setScale(0.25);
+          sparkle.setTint(0x66ddff);
+          sparkle.setAlpha(0);
+          sparkle.setDepth(50);
+          sparkle.setBlendMode(Phaser.BlendModes.ADD);
+          this.tweens.add({
+            targets: sparkle,
+            alpha: { from: 0, to: 0.9 },
+            scale: { from: 0.15, to: 0.35 },
+            duration: 400,
+            yoyo: true,
+            onComplete: () => sparkle.destroy()
+          });
+        }
+      });
+    }
+  }
+
+  createLightingOverlay(areaType) {
+    const overlayMap = {
+      forest: { color: 0x003300, alpha: 0.15 },
+      cave:   { color: 0x000000, alpha: 0.25 },
+      mine:   { color: 0x000000, alpha: 0.25 },
+      temple: { color: 0x331100, alpha: 0.10 },
+      desert: { color: 0x332200, alpha: 0.08 },
+    };
+
+    const config = overlayMap[areaType];
+    if (!config) return;
+
+    const cam = this.cameras.main;
+    this.lightingOverlay = this.add.rectangle(
+      cam.width / 2, cam.height / 2,
+      cam.width, cam.height,
+      config.color, config.alpha
+    );
+    this.lightingOverlay.setScrollFactor(0);
+    this.lightingOverlay.setDepth(90);
+  }
+
+  createWaterShimmer() {
+    this.waterTweens = [];
+    for (const tile of this.tileSprites) {
+      if (tile.texture && tile.texture.key && tile.texture.key.toLowerCase().includes('water')) {
+        const tw = this.tweens.add({
+          targets: tile,
+          alpha: { from: 1.0, to: 0.85 },
+          duration: 1500,
+          yoyo: true,
+          repeat: -1,
+          ease: 'Sine.easeInOut'
+        });
+        this.waterTweens.push(tw);
+      }
+    }
+  }
+
+  cleanupAtmosphericEffects() {
+    // Destroy ambient particle emitters
+    for (const emitter of this.ambientParticles) {
+      emitter.destroy();
+    }
+    this.ambientParticles = [];
+
+    // Destroy lighting overlay
+    if (this.lightingOverlay) {
+      this.lightingOverlay.destroy();
+      this.lightingOverlay = null;
+    }
+
+    // Stop water shimmer tweens
+    for (const tw of this.waterTweens) {
+      tw.stop();
+    }
+    this.waterTweens = [];
+
+    // Stop timers
+    if (this.fireflyTimer) {
+      this.fireflyTimer.remove(false);
+      this.fireflyTimer = null;
+    }
+    if (this.crystalTimer) {
+      this.crystalTimer.remove(false);
+      this.crystalTimer = null;
+    }
   }
 }
