@@ -26,6 +26,12 @@ app.use('/api/healer', require('./routes/healer'));
 app.use('/api/storage', require('./routes/storage'));
 app.use('/api/kingdoms', require('./routes/kingdoms'));
 app.use('/api/classes', require('./routes/classes'));
+app.use('/api/quests', require('./routes/quests'));
+app.use('/api/dialogs', require('./routes/dialogs'));
+app.use('/api/hotbar', require('./routes/hotbar'));
+app.use('/api/status-effects', require('./routes/statusEffects'));
+app.use('/api/dungeons', require('./routes/dungeons'));
+app.use('/api/saves', require('./routes/saves'));
 
 // Health check
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));

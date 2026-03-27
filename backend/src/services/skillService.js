@@ -1,4 +1,6 @@
 const db = require('../database/connection');
+const skillProgression = require('../modules/skillProgression');
+const cfg = require('../modules/statusConfig');
 
 module.exports = {
   async getClassSkills(classId) {
@@ -33,7 +35,16 @@ module.exports = {
         'skills.class_id'
       );
 
-    return skills;
+    // Enriquece com dados de progressao
+    return skills.map(s => ({
+      ...s,
+      progression_label: skillProgression.getProgressionLabel(s),
+      effective_progress: skillProgression.getEffectiveProgressValue(s),
+      can_normal_upgrade: skillProgression.canProgressWithNormalPoint(s),
+      can_read_book: skillProgression.canReadBook(s),
+      can_use_spirit_stone: skillProgression.canUseSpiritStone(s),
+      is_master_transition: skillProgression.isMasterTransitionReached(s),
+    }));
   },
 
   async learnSkill(charId, skillId) {
@@ -75,7 +86,13 @@ module.exports = {
       character_id: charId,
       skill_id: skillId,
       level: 1,
-      cooldown_remaining: 0
+      cooldown_remaining: 0,
+      progress_stage: 'NORMAL',
+      master_stage_level: 0,
+      grand_stage_level: 0,
+      perfect_stage_level: 0,
+      master_book_reads: 0,
+      times_used: 0,
     });
 
     const learned = await db('character_skills')
@@ -101,10 +118,12 @@ module.exports = {
       throw new Error('Habilidade não aprendida');
     }
 
-    const skill = await db('skills').where({ id: skillId }).first();
-
-    if (charSkill.level >= skill.max_level) {
-      throw new Error('Habilidade já está no nível máximo');
+    // Verifica se pode progredir com ponto normal
+    if (!skillProgression.canProgressWithNormalPoint(charSkill)) {
+      if (skillProgression.isMasterTransitionReached(charSkill)) {
+        throw new Error('Habilidade atingiu o limiar. Use livros para progredir.');
+      }
+      throw new Error('Habilidade não pode ser evoluída com pontos normais neste estágio');
     }
 
     if (character.skill_points < 1) {
@@ -115,9 +134,18 @@ module.exports = {
       .where({ id: charId })
       .update({ skill_points: character.skill_points - 1 });
 
+    const newLevel = charSkill.level + 1;
+    const updates = { level: newLevel };
+
+    // Auto-promote para MASTER ao atingir o limiar
+    if (newLevel >= cfg.MASTER_TRANSITION_LEVEL) {
+      updates.progress_stage = 'MASTER';
+      updates.master_stage_level = 1;
+    }
+
     await db('character_skills')
       .where({ id: charSkill.id })
-      .update({ level: charSkill.level + 1 });
+      .update(updates);
 
     const updated = await db('character_skills')
       .join('skills', 'character_skills.skill_id', 'skills.id')
@@ -126,5 +154,89 @@ module.exports = {
       .first();
 
     return updated;
-  }
+  },
+
+  /**
+   * Tenta progredir a skill lendo um livro.
+   * So funciona no estagio MASTER.
+   */
+  async readBook(charId, skillId) {
+    const charSkill = await db('character_skills')
+      .where({ character_id: charId, skill_id: skillId })
+      .first();
+
+    if (!charSkill) {
+      throw new Error('Habilidade não aprendida');
+    }
+
+    const result = skillProgression.readBook(charSkill);
+
+    if (result.mutations) {
+      await db('character_skills')
+        .where({ id: charSkill.id })
+        .update(result.mutations);
+    }
+
+    return result;
+  },
+
+  /**
+   * Tenta progredir a skill com Pedra Espiritual.
+   * So funciona no estagio GRAND_MASTER. Consome honra.
+   */
+  async useSpiritStone(charId, skillId) {
+    const character = await db('characters').where({ id: charId }).first();
+    if (!character) {
+      throw new Error('Personagem não encontrado');
+    }
+
+    const charSkill = await db('character_skills')
+      .where({ character_id: charId, skill_id: skillId })
+      .first();
+
+    if (!charSkill) {
+      throw new Error('Habilidade não aprendida');
+    }
+
+    const result = skillProgression.useSpiritStone(charSkill, character.honor || 0);
+
+    // Aplica mutacoes na skill
+    if (result.mutations) {
+      await db('character_skills')
+        .where({ id: charSkill.id })
+        .update(result.mutations);
+    }
+
+    // Aplica perda de honra
+    if (result.honor_result) {
+      await db('characters')
+        .where({ id: charId })
+        .update({ honor: result.honor_result.honor });
+    }
+
+    return result;
+  },
+
+  /**
+   * Retorna informacao de progressao de uma skill especifica.
+   */
+  async getSkillProgression(charId, skillId) {
+    const charSkill = await db('character_skills')
+      .where({ character_id: charId, skill_id: skillId })
+      .first();
+
+    if (!charSkill) {
+      return null;
+    }
+
+    return {
+      ...charSkill,
+      progression_label: skillProgression.getProgressionLabel(charSkill),
+      effective_progress: skillProgression.getEffectiveProgressValue(charSkill),
+      can_normal_upgrade: skillProgression.canProgressWithNormalPoint(charSkill),
+      can_read_book: skillProgression.canReadBook(charSkill),
+      can_use_spirit_stone: skillProgression.canUseSpiritStone(charSkill),
+      is_master_transition: skillProgression.isMasterTransitionReached(charSkill),
+    };
+  },
 };

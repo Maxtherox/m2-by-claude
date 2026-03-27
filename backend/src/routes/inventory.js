@@ -36,8 +36,8 @@ router.post('/unequip', async (req, res) => {
 // POST /use - Use a consumable item
 router.post('/use', async (req, res) => {
   try {
-    const { character_id, inv_id } = req.body;
-    const result = await inventoryService.useItem(character_id, inv_id);
+    const { character_id, inv_id, skill_id } = req.body;
+    const result = await inventoryService.useItem(character_id, inv_id, { skill_id });
     res.json({ success: true, data: result });
   } catch (error) {
     res.status(400).json({ success: false, error: error.message });

@@ -70,6 +70,38 @@ export class NPC {
         this.interact();
       }
     });
+
+    // Store tweens for cleanup
+    this._tweens = [];
+
+    // Idle breathing animation
+    this._idleTween = scene.tweens.add({
+      targets: this.sprite,
+      scaleY: 1.02,
+      duration: 1500,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
+    this._tweens.push(this._idleTween);
+
+    // Healer NPC ambient glow
+    const npcType = normalizeNpcType(npcData.type);
+    if (npcType === 'healer') {
+      this._healGlow = scene.add.circle(x, y + 8, 16, 0x00ff00, 0.15);
+      this._healGlow.setDepth(this.sprite.depth - 1);
+      this._healGlowTween = scene.tweens.add({
+        targets: this._healGlow,
+        alpha: 0.05,
+        scaleX: 1.2,
+        scaleY: 1.2,
+        duration: 1200,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut'
+      });
+      this._tweens.push(this._healGlowTween);
+    }
   }
 
   checkProximity(playerSprite) {
@@ -83,6 +115,12 @@ export class NPC {
 
     if (this.isPlayerNear && !wasNear) {
       this.promptText.setVisible(true);
+      // Face toward the player
+      if (playerSprite.x < this.sprite.x) {
+        this.sprite.setFlipX(true);
+      } else {
+        this.sprite.setFlipX(false);
+      }
     } else if (!this.isPlayerNear && wasNear) {
       this.promptText.setVisible(false);
     }
@@ -107,6 +145,12 @@ export class NPC {
   }
 
   destroy() {
+    // Stop all tweens
+    if (this._tweens) {
+      this._tweens.forEach(t => { if (t && t.isPlaying) t.stop(); });
+      this._tweens = [];
+    }
+    if (this._healGlow) this._healGlow.destroy();
     if (this.sprite) this.sprite.destroy();
     if (this.nameText) this.nameText.destroy();
     if (this.indicatorIcon) this.indicatorIcon.destroy();

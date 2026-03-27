@@ -1,5 +1,6 @@
 const db = require('../database/connection');
 const constants = require('../utils/constants');
+const skillService = require('./skillService');
 
 module.exports = {
   async getInventory(charId) {
@@ -239,7 +240,7 @@ module.exports = {
     return { gold_earned: totalPrice, new_gold: character.gold, item_name: invItem.name, quantity_sold: qty };
   },
 
-  async useItem(charId, invId) {
+  async useItem(charId, invId, options = {}) {
     const invItem = await db('character_inventory')
       .join('items', 'character_inventory.item_id', 'items.id')
       .where({ 'character_inventory.id': invId, character_id: charId })
@@ -250,8 +251,40 @@ module.exports = {
       throw new Error('Item não encontrado no inventário');
     }
 
-    if (invItem.type !== 'consumable') {
+    if (invItem.type !== 'consumable' && invItem.type !== 'scroll') {
       throw new Error('Este item não pode ser usado');
+    }
+
+    // Skill progression items
+    if (invItem.effect_type === 'skill_book' || invItem.effect_type === 'spirit_stone') {
+      const skillId = options.skill_id;
+      if (!skillId) {
+        throw new Error('Skill ID necessario para usar este item');
+      }
+
+      let result;
+      if (invItem.effect_type === 'skill_book') {
+        result = await skillService.readBook(charId, skillId);
+      } else {
+        result = await skillService.useSpiritStone(charId, skillId);
+      }
+
+      // Consume 1 from stack (item is always consumed on valid attempt)
+      if (invItem.quantity <= 1) {
+        await db('character_inventory').where({ id: invId }).delete();
+      } else {
+        await db('character_inventory')
+          .where({ id: invId })
+          .update({ quantity: invItem.quantity - 1 });
+      }
+
+      return {
+        message: result.success
+          ? `${invItem.name} usado com sucesso!`
+          : `${invItem.name} falhou: ${result.failure_reason}`,
+        skill_result: result,
+        item_consumed: true,
+      };
     }
 
     const character = await db('characters').where({ id: charId }).first();

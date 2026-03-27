@@ -10,6 +10,7 @@ export const createCharacter = (data) => client.post('/characters', data).then((
 export const getCharacter = (id) => client.get(`/characters/${id}`).then((r) => r.data);
 export const saveCharacter = (id, data) => client.put(`/characters/${id}`, data).then((r) => r.data);
 export const allocatePoints = (id, points) => client.post(`/characters/${id}/allocate-points`, points).then((r) => r.data);
+export const addHonor = (id, amount) => client.post(`/characters/${id}/add-honor`, { amount }).then((r) => r.data);
 
 // Game data
 export const getKingdoms = () => client.get('/kingdoms').then((r) => r.data);
@@ -39,6 +40,8 @@ export const getClassSkills = (classId) => client.get(`/skills/class/${classId}`
 export const getCharacterSkills = (charId) => client.get(`/skills/character/${charId}`).then((r) => r.data);
 export const learnSkill = (charId, skillId) => client.post('/skills/learn', { character_id: charId, skill_id: skillId }).then((r) => r.data);
 export const upgradeSkill = (charId, skillId) => client.post('/skills/upgrade', { character_id: charId, skill_id: skillId }).then((r) => r.data);
+export const readSkillBook = (charId, skillId) => client.post('/skills/read-book', { character_id: charId, skill_id: skillId }).then((r) => r.data);
+export const useSpiritStone = (charId, skillId) => client.post('/skills/spirit-stone', { character_id: charId, skill_id: skillId }).then((r) => r.data);
 
 // Shop / NPC
 export const getShopItems = (npcId) => client.get(`/shops/${npcId}`).then((r) => r.data);
@@ -69,5 +72,40 @@ export const healCharacter = (charId) => client.post('/healer', { character_id: 
 export const getStorage = (charId) => client.get(`/storage/${charId}`).then((r) => r.data);
 export const depositItem = (charId, invId, quantity) => client.post('/storage/deposit', { character_id: charId, inv_id: invId, quantity }).then((r) => r.data);
 export const withdrawItem = (charId, storageId, quantity) => client.post('/storage/withdraw', { character_id: charId, storage_id: storageId, quantity }).then((r) => r.data);
+
+// Quests
+export const getAvailableQuests = (charId) => client.get(`/quests/available/${charId}`).then((r) => r.data);
+export const getActiveQuests = (charId) => client.get(`/quests/active/${charId}`).then((r) => r.data);
+export const getCompletedQuests = (charId) => client.get(`/quests/completed/${charId}`).then((r) => r.data);
+export const acceptQuest = (charId, questId) => client.post('/quests/accept', { character_id: charId, quest_id: questId }).then((r) => r.data);
+export const turnInQuest = (charId, questId) => client.post('/quests/turn-in', { character_id: charId, quest_id: questId }).then((r) => r.data);
+export const abandonQuest = (charId, questId) => client.post('/quests/abandon', { character_id: charId, quest_id: questId }).then((r) => r.data);
+
+// Dialogs
+export const getNPCDialog = (npcId, charId) => client.get(`/dialogs/npc/${npcId}/character/${charId}`).then((r) => r.data);
+export const getDialogNode = (dialogId, nodeIndex) => client.get(`/dialogs/node/${dialogId}/${nodeIndex}`).then((r) => r.data);
+export const executeDialogAction = (charId, action, actionParam) => client.post('/dialogs/action', { character_id: charId, action, action_param: actionParam }).then((r) => r.data);
+
+// Hotbar
+export const getHotbar = (charId) => client.get(`/hotbar/${charId}`).then((r) => r.data);
+export const setHotbarSlot = (charId, slotIndex, type, referenceId) => client.post('/hotbar/set', { character_id: charId, slot_index: slotIndex, type, reference_id: referenceId }).then((r) => r.data);
+export const clearHotbarSlot = (charId, slotIndex) => client.post('/hotbar/clear', { character_id: charId, slot_index: slotIndex }).then((r) => r.data);
+
+// Status Effects
+export const getActiveEffects = (charId) => client.get(`/status-effects/${charId}`).then((r) => r.data);
+
+// Dungeons
+export const getDungeons = () => client.get('/dungeons').then((r) => r.data);
+export const getDungeonDetails = (id) => client.get(`/dungeons/${id}`).then((r) => r.data);
+export const startDungeonRun = (charId, dungeonId) => client.post('/dungeons/start', { character_id: charId, dungeon_id: dungeonId }).then((r) => r.data);
+export const getCurrentDungeonRun = (charId) => client.get(`/dungeons/run/${charId}`).then((r) => r.data);
+export const advanceDungeonFloor = (charId) => client.post('/dungeons/advance', { character_id: charId }).then((r) => r.data);
+export const abandonDungeonRun = (charId) => client.post('/dungeons/abandon', { character_id: charId }).then((r) => r.data);
+
+// Save/Load
+export const getSaveSlots = (charId) => client.get(`/saves/${charId}`).then((r) => r.data);
+export const saveGame = (charId, slotNumber, label) => client.post('/saves/save', { character_id: charId, slot_number: slotNumber, label }).then((r) => r.data);
+export const loadGame = (charId, slotNumber) => client.post('/saves/load', { character_id: charId, slot_number: slotNumber }).then((r) => r.data);
+export const deleteSave = (charId, slotNumber) => client.delete(`/saves/${charId}/${slotNumber}`).then((r) => r.data);
 
 export default client;

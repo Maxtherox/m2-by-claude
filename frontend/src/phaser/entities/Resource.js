@@ -69,6 +69,67 @@ export class Resource {
         this.gather();
       }
     });
+
+    // Store tweens for cleanup
+    this._tweens = [];
+    this._resourceType = typeStr;
+
+    // Type-specific idle animations
+    this._setupIdleAnimations(typeStr);
+  }
+
+  _setupIdleAnimations(typeStr) {
+    if (typeStr === 'mining') {
+      // Occasional sparkle effect
+      this._sparkleTimer = this.scene.time.addEvent({
+        delay: Phaser.Math.Between(2000, 4000),
+        callback: () => this._spawnSparkle(),
+        loop: true
+      });
+    } else if (typeStr === 'woodcutting') {
+      // Gentle sway animation
+      this._swayTween = this.scene.tweens.add({
+        targets: this.sprite,
+        angle: 2,
+        duration: 1500,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut'
+      });
+      this._tweens.push(this._swayTween);
+    } else if (typeStr === 'farming') {
+      // Gentle scale pulse (wind effect)
+      this._windTween = this.scene.tweens.add({
+        targets: this.sprite,
+        scaleX: 1.03,
+        scaleY: 1.02,
+        duration: 1250,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut'
+      });
+      this._tweens.push(this._windTween);
+    }
+  }
+
+  _spawnSparkle() {
+    if (this.isDepleted || !this.sprite || !this.sprite.active) return;
+    const offsetX = Phaser.Math.Between(-8, 8);
+    const offsetY = Phaser.Math.Between(-8, 8);
+    const sparkle = this.scene.add.rectangle(
+      this.sprite.x + offsetX,
+      this.sprite.y + offsetY,
+      2, 2, 0xffffff
+    );
+    sparkle.setDepth(this.sprite.depth + 1);
+    sparkle.setAlpha(1);
+    this.scene.tweens.add({
+      targets: sparkle,
+      alpha: 0,
+      duration: 400,
+      ease: 'Power2',
+      onComplete: () => sparkle.destroy()
+    });
   }
 
   checkProximity(playerSprite) {
@@ -144,9 +205,24 @@ export class Resource {
 
   deplete() {
     this.isDepleted = true;
-    this.sprite.setAlpha(0.3);
-    this.nameText.setAlpha(0.3);
     this.promptText.setVisible(false);
+
+    // Shake animation before going transparent
+    const origX = this.sprite.x;
+    this._shakeTween = this.scene.tweens.add({
+      targets: this.sprite,
+      x: origX + 3,
+      duration: 50,
+      yoyo: true,
+      repeat: 5,
+      ease: 'Sine.easeInOut',
+      onComplete: () => {
+        this.sprite.setPosition(origX, this.sprite.y);
+        this.sprite.setAlpha(0.3);
+        this.nameText.setAlpha(0.3);
+      }
+    });
+    this._tweens.push(this._shakeTween);
 
     // Respawn after delay
     this.scene.time.delayedCall(this.respawnTime, () => {
@@ -161,6 +237,15 @@ export class Resource {
   }
 
   destroy() {
+    // Stop all tweens
+    if (this._tweens) {
+      this._tweens.forEach(t => { if (t && t.isPlaying) t.stop(); });
+      this._tweens = [];
+    }
+    if (this._sparkleTimer) {
+      this._sparkleTimer.remove(false);
+      this._sparkleTimer = null;
+    }
     if (this.sprite) this.sprite.destroy();
     if (this.nameText) this.nameText.destroy();
     if (this.promptText) this.promptText.destroy();

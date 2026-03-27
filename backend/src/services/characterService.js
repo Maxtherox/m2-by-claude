@@ -1,6 +1,9 @@
 const db = require('../database/connection');
 const formulas = require('../utils/formulas');
 const constants = require('../utils/constants');
+const derivedStatsModule = require('../modules/derivedStats');
+const xpSystem = require('../modules/xpSystem');
+const honorSystem = require('../modules/honorSystem');
 
 module.exports = {
   async createCharacter(data) {
@@ -38,9 +41,9 @@ module.exports = {
     const vit = classData.base_vit;
     const dex = classData.base_dex;
 
-    const maxHP = formulas.calcMaxHP(vit, 1, classData);
-    const maxMP = formulas.calcMaxMP(int, 1, classData);
-    const maxStamina = formulas.calcMaxStamina(vit, dex, 1);
+    const maxHP = derivedStatsModule.calcMaxHP(vit, 1, classData.base_vit, 0);
+    const maxMP = derivedStatsModule.calcMaxMP(int, 1, classData.base_int);
+    const maxStamina = derivedStatsModule.calcMaxStamina(vit, dex, 1);
 
     const [id] = await db('characters').insert({
       name,
@@ -48,6 +51,7 @@ module.exports = {
       class_id,
       level: 1,
       exp: 0,
+      exp_total: 0,
       gold: constants.STARTING_GOLD,
       hp: maxHP,
       max_hp: maxHP,
@@ -61,6 +65,11 @@ module.exports = {
       dexterity: dex,
       status_points: 0,
       skill_points: 0,
+      honor: 0,
+      level_bonus_attack_physical: 0,
+      level_bonus_attack_magic: 0,
+      level_bonus_defense: 0,
+      level_bonus_hp: 0,
       current_area_id: kingdom.start_area_id || 1,
       appearance: appearance ? JSON.stringify(appearance) : null
     });
@@ -126,6 +135,7 @@ module.exports = {
       throw new Error('Personagem não encontrado');
     }
 
+    // Coleta bonus de equipamento
     const equippedItems = await db('character_inventory')
       .join('items', 'character_inventory.item_id', 'items.id')
       .where({ character_id: id, equipped: true })
@@ -148,7 +158,6 @@ module.exports = {
       const slot = item.equipment_slot;
       equipment[slot] = item;
 
-      // Base item stats
       equipBonuses.attack += item.attack || 0;
       equipBonuses.magic_attack += item.magic_attack || 0;
       equipBonuses.defense += item.defense || 0;
@@ -157,7 +166,6 @@ module.exports = {
       equipBonuses.hp_bonus += item.hp_bonus || 0;
       equipBonuses.mp_bonus += item.mp_bonus || 0;
 
-      // Refinement bonuses
       if (item.refinement > 0) {
         equipBonuses.attack += formulas.calcRefineBonus(item.attack || 0, item.refinement);
         equipBonuses.magic_attack += formulas.calcRefineBonus(item.magic_attack || 0, item.refinement);
@@ -165,7 +173,6 @@ module.exports = {
         equipBonuses.magic_defense += formulas.calcRefineBonus(item.magic_defense || 0, item.refinement);
       }
 
-      // Normal bonuses (1-5)
       for (let i = 1; i <= 5; i++) {
         const bType = item[`bonus_${i}_type`];
         const bValue = item[`bonus_${i}_value`] || 0;
@@ -174,7 +181,6 @@ module.exports = {
         }
       }
 
-      // Special bonuses (1-2)
       for (let i = 1; i <= 2; i++) {
         const bType = item[`special_bonus_${i}_type`];
         const bValue = item[`special_bonus_${i}_value`] || 0;
@@ -184,11 +190,7 @@ module.exports = {
       }
     }
 
-    const totalStr = character.strength + equipBonuses.strength;
-    const totalInt = character.intelligence + equipBonuses.intelligence;
-    const totalVit = character.vitality + equipBonuses.vitality;
-    const totalDex = character.dexterity + equipBonuses.dexterity;
-
+    // Recalculo centralizado via derivedStats module
     const classData = {
       base_str: character.base_str,
       base_int: character.base_int,
@@ -196,27 +198,17 @@ module.exports = {
       base_dex: character.base_dex
     };
 
-    const derivedStats = {
-      max_hp: formulas.calcMaxHP(totalVit, character.level, classData) + equipBonuses.max_hp + equipBonuses.hp_bonus,
-      max_mp: formulas.calcMaxMP(totalInt, character.level, classData) + equipBonuses.max_mp + equipBonuses.mp_bonus,
-      max_stamina: formulas.calcMaxStamina(totalVit, totalDex, character.level) + equipBonuses.max_stamina,
-      attack: formulas.calcAttack(totalStr, character.level, classData) + equipBonuses.attack,
-      magic_attack: formulas.calcMagicAttack(totalInt, character.level, classData) + equipBonuses.magic_attack,
-      defense: formulas.calcDefense(totalVit, character.level) + equipBonuses.defense,
-      magic_defense: formulas.calcMagicDefense(totalInt, totalVit, character.level) + equipBonuses.magic_defense,
-      critical: formulas.calcCritical(totalDex, character.level) + equipBonuses.critical,
-      dodge: formulas.calcDodge(totalDex, character.level) + equipBonuses.dodge,
-      accuracy: formulas.calcAccuracy(totalDex, character.level) + equipBonuses.accuracy,
-      speed: formulas.calcSpeed(totalDex, character.level) + equipBonuses.speed,
-      penetration: formulas.calcPenetration(totalStr, totalDex) + equipBonuses.penetration,
-      exp_for_next_level: formulas.calcExpForLevel(character.level)
-    };
+    const derived = derivedStatsModule.recalculateAll(character, classData, equipBonuses);
+
+    // Honra
+    const honor_rank = honorSystem.resolveHonorRank(character.honor || 0);
 
     return {
       ...character,
+      honor_rank,
       equipment,
       equipment_bonuses: equipBonuses,
-      derived_stats: derivedStats
+      derived_stats: derived
     };
   },
 
@@ -226,6 +218,11 @@ module.exports = {
 
     if (total <= 0) {
       throw new Error('Deve alocar pelo menos 1 ponto');
+    }
+
+    // Validacao: nenhum valor negativo
+    if ((strength || 0) < 0 || (intelligence || 0) < 0 || (vitality || 0) < 0 || (dexterity || 0) < 0) {
+      throw new Error('Não é permitido alocar pontos negativos');
     }
 
     const character = await db('characters').where({ id: charId }).first();
@@ -244,9 +241,9 @@ module.exports = {
 
     const classData = await db('classes').where({ id: character.class_id }).first();
 
-    const maxHP = formulas.calcMaxHP(newVit, character.level, classData);
-    const maxMP = formulas.calcMaxMP(newInt, character.level, classData);
-    const maxStamina = formulas.calcMaxStamina(newVit, newDex, character.level);
+    const maxHP = derivedStatsModule.calcMaxHP(newVit, character.level, classData.base_vit, character.level_bonus_hp || 0);
+    const maxMP = derivedStatsModule.calcMaxMP(newInt, character.level, classData.base_int);
+    const maxStamina = derivedStatsModule.calcMaxStamina(newVit, newDex, character.level);
 
     await db('characters').where({ id: charId }).update({
       strength: newStr,
@@ -265,70 +262,88 @@ module.exports = {
     return this.getCharacter(charId);
   },
 
-  async addExperience(charId, amount) {
+  async addExperience(charId, amount, source) {
     const character = await db('characters').where({ id: charId }).first();
     if (!character) {
       throw new Error('Personagem não encontrado');
     }
 
     if (character.level >= constants.MAX_LEVEL) {
-      return { leveled_up: false, new_level: character.level, character };
+      return { leveled_up: false, new_level: character.level, milestones: [], character };
     }
 
     const classData = await db('classes').where({ id: character.class_id }).first();
-    let exp = character.exp + amount;
-    let level = character.level;
-    let statusPoints = character.status_points;
-    let skillPoints = character.skill_points;
-    let str = character.strength;
-    let int = character.intelligence;
-    let vit = character.vitality;
-    let dex = character.dexterity;
-    let leveledUp = false;
 
-    let expNeeded = formulas.calcExpForLevel(level);
-    while (exp >= expNeeded && level < constants.MAX_LEVEL) {
-      exp -= expNeeded;
-      level++;
-      leveledUp = true;
+    // Usa o modulo de XP centralizado
+    const result = xpSystem.addExperience(character, amount, source || 'unknown');
 
-      str += classData.str_per_level;
-      int += classData.int_per_level;
-      vit += classData.vit_per_level;
-      dex += classData.dex_per_level;
-      statusPoints += constants.STATUS_POINTS_PER_LEVEL;
-      skillPoints += constants.SKILL_POINTS_PER_LEVEL;
+    if (!result.leveledUp && Object.keys(result.mutations).length === 0) {
+      // Mesmo sem level up, atualiza exp e exp_total
+      await db('characters').where({ id: charId }).update({
+        exp: character.exp + amount,
+        exp_total: (character.exp_total || 0) + amount,
+      });
 
-      expNeeded = formulas.calcExpForLevel(level);
+      const updatedCharacter = await this.getCharacter(charId);
+      return {
+        leveled_up: false,
+        new_level: character.level,
+        milestones: [],
+        character: updatedCharacter,
+      };
     }
 
-    const maxHP = formulas.calcMaxHP(vit, level, classData);
-    const maxMP = formulas.calcMaxMP(int, level, classData);
-    const maxStamina = formulas.calcMaxStamina(vit, dex, level);
+    // Calcula stats derivados com os novos niveis e bonus
+    const mutations = result.mutations;
+
+    // Soma do crescimento de stats por classe nos level ups
+    let str = character.strength + (classData.str_per_level * result.levelsGained);
+    let int = character.intelligence + (classData.int_per_level * result.levelsGained);
+    let vit = character.vitality + (classData.vit_per_level * result.levelsGained);
+    let dex = character.dexterity + (classData.dex_per_level * result.levelsGained);
+
+    const maxHP = derivedStatsModule.calcMaxHP(vit, mutations.level, classData.base_vit, mutations.level_bonus_hp);
+    const maxMP = derivedStatsModule.calcMaxMP(int, mutations.level, classData.base_int);
+    const maxStamina = derivedStatsModule.calcMaxStamina(vit, dex, mutations.level);
 
     await db('characters').where({ id: charId }).update({
-      exp,
-      level,
+      ...mutations,
       strength: str,
       intelligence: int,
       vitality: vit,
       dexterity: dex,
-      status_points: statusPoints,
-      skill_points: skillPoints,
       max_hp: maxHP,
       max_mp: maxMP,
       max_stamina: maxStamina,
-      hp: leveledUp ? maxHP : character.hp,
-      mp: leveledUp ? maxMP : character.mp,
-      stamina: leveledUp ? maxStamina : character.stamina
+      // Restaura HP/MP/Stamina no level up
+      hp: result.leveledUp ? maxHP : character.hp,
+      mp: result.leveledUp ? maxMP : character.mp,
+      stamina: result.leveledUp ? maxStamina : character.stamina,
     });
 
     const updatedCharacter = await this.getCharacter(charId);
 
     return {
-      leveled_up: leveledUp,
-      new_level: level,
-      character: updatedCharacter
+      leveled_up: result.leveledUp,
+      levels_gained: result.levelsGained,
+      new_level: mutations.level,
+      milestones: result.milestones,
+      character: updatedCharacter,
     };
-  }
+  },
+
+  async addHonor(charId, amount, source) {
+    const character = await db('characters').where({ id: charId }).first();
+    if (!character) {
+      throw new Error('Personagem não encontrado');
+    }
+
+    const result = amount >= 0
+      ? honorSystem.addHonor(character.honor || 0, amount, source)
+      : honorSystem.removeHonor(character.honor || 0, Math.abs(amount), source);
+
+    await db('characters').where({ id: charId }).update({ honor: result.honor });
+
+    return this.getCharacter(charId);
+  },
 };

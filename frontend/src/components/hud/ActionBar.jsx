@@ -7,9 +7,12 @@ const ACTIONS = [
   { id: 'inventory', label: 'Inventario', icon: '\u{1F392}', key: 'I' },
   { id: 'equipment', label: 'Equip', icon: '\u{1F6E1}\uFE0F', key: 'O' },
   { id: 'skills', label: 'Skills', icon: '\u{1F4D6}', key: 'K' },
+  { id: 'quests', label: 'Missoes', icon: '\u{1F4DC}', key: 'Q' },
+  { id: 'dungeons', label: 'Masmorras', icon: '\u{1F3F0}', key: 'D' },
   { id: 'map', label: 'Mapa', icon: '\u{1F5FA}\uFE0F', key: 'M' },
   { id: 'lifeskills', label: 'Profissoes', icon: '\u{1F528}', key: 'P' },
   { id: 'idle', label: 'Idle', icon: '\u{1F55B}', key: 'L' },
+  { id: 'saves', label: 'Save', icon: '\u{1F4BE}', key: 'F5' },
   { id: 'menu', label: 'Menu', icon: '\u2699\uFE0F', key: 'ESC' },
 ];
 

@@ -67,4 +67,18 @@ router.post('/:id/allocate-points', async (req, res) => {
   }
 });
 
+// POST /:id/add-honor
+router.post('/:id/add-honor', async (req, res) => {
+  try {
+    const { amount } = req.body;
+    if (amount === undefined || amount === null) {
+      return res.status(400).json({ success: false, error: 'amount é obrigatório' });
+    }
+    const character = await characterService.addHonor(parseInt(req.params.id), amount);
+    res.json({ success: true, data: character });
+  } catch (error) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+});
+
 module.exports = router;

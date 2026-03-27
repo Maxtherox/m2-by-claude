@@ -39,4 +39,26 @@ router.post('/upgrade', async (req, res) => {
   }
 });
 
+// POST /read-book - Ler livro para progressao MASTER
+router.post('/read-book', async (req, res) => {
+  try {
+    const { character_id, skill_id } = req.body;
+    const result = await skillService.readBook(character_id, skill_id);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+});
+
+// POST /spirit-stone - Usar Pedra Espiritual para progressao GRAND_MASTER
+router.post('/spirit-stone', async (req, res) => {
+  try {
+    const { character_id, skill_id } = req.body;
+    const result = await skillService.useSpiritStone(character_id, skill_id);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+});
+
 module.exports = router;

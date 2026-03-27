@@ -17,6 +17,14 @@ export const upgradeSkill = createAsyncThunk('skills/upgrade', async ({ charId, 
   try { const r = await api.upgradeSkill(charId, skillId); return r.data || r; } catch (err) { return rejectWithValue(err.response?.data?.error || 'Erro'); }
 });
 
+export const readSkillBook = createAsyncThunk('skills/readBook', async ({ charId, skillId }, { rejectWithValue }) => {
+  try { const r = await api.readSkillBook(charId, skillId); return r.data || r; } catch (err) { return rejectWithValue(err.response?.data?.error || 'Erro'); }
+});
+
+export const useSpiritStone = createAsyncThunk('skills/spiritStone', async ({ charId, skillId }, { rejectWithValue }) => {
+  try { const r = await api.useSpiritStone(charId, skillId); return r.data || r; } catch (err) { return rejectWithValue(err.response?.data?.error || 'Erro'); }
+});
+
 const skillSlice = createSlice({
   name: 'skills',
   initialState: {
@@ -24,8 +32,13 @@ const skillSlice = createSlice({
     characterSkills: [],
     loading: false,
     error: null,
+    lastProgressionResult: null,
   },
-  reducers: {},
+  reducers: {
+    clearProgressionResult: (state) => {
+      state.lastProgressionResult = null;
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(fetchClassSkills.pending, (state) => { state.loading = true; })
@@ -45,8 +58,21 @@ const skillSlice = createSlice({
       })
       .addCase(upgradeSkill.fulfilled, (state, action) => {
         state.characterSkills = action.payload.skills || action.payload;
+      })
+      .addCase(readSkillBook.fulfilled, (state, action) => {
+        state.lastProgressionResult = action.payload;
+      })
+      .addCase(readSkillBook.rejected, (state, action) => {
+        state.error = action.payload;
+      })
+      .addCase(useSpiritStone.fulfilled, (state, action) => {
+        state.lastProgressionResult = action.payload;
+      })
+      .addCase(useSpiritStone.rejected, (state, action) => {
+        state.error = action.payload;
       });
   },
 });
 
+export const { clearProgressionResult } = skillSlice.actions;
 export default skillSlice.reducer;
