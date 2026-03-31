@@ -4,6 +4,7 @@ import { fetchAreas, fetchAreaDetails } from '../../store/slices/gameSlice';
 import { closePanel, addNotification, setActiveNpc, setActivePanel } from '../../store/slices/uiSlice';
 import { loadCharacter } from '../../store/slices/characterSlice';
 import * as api from '../../services/api';
+import { Metin2Window, Metin2Box } from '../metin2ui';
 
 export default function MapPanel() {
   const dispatch = useDispatch();
@@ -42,34 +43,29 @@ export default function MapPanel() {
   );
 
   return (
-    <div className="metin-panel-gold p-4 w-[450px]">
-      <div className="flex justify-between items-center mb-3">
-        <h2 className="panel-title !mb-0 !pb-0 !border-0">Mapa</h2>
-        <button onClick={() => dispatch(closePanel())} className="text-gray-500 hover:text-metin-gold">X</button>
-      </div>
-      <div className="divider-gold" />
+    <Metin2Window title="Mapa" onClose={() => dispatch(closePanel())} variant="board" style={{ width: 450 }}>
 
       {/* Current area info */}
       {currentArea && (
-        <div className="metin-panel p-3 mb-3">
+        <Metin2Box variant="a" style={{ marginBottom: 12 }}>
           <div className="text-metin-gold font-medieval">{currentArea.name}</div>
-          <div className="text-xs text-gray-400">{currentArea.description}</div>
-          <div className="text-xs text-gray-500 mt-1">
+          <div className="text-sm text-gray-400">{currentArea.description}</div>
+          <div className="text-sm text-gray-500 mt-1">
             Nivel: {currentArea.level_min}-{currentArea.level_max} | Tipo: {currentArea.type}
           </div>
-        </div>
+        </Metin2Box>
       )}
 
       {/* Area NPCs & Mobs */}
       {areaDetails && (
-        <div className="mb-3">
+        <Metin2Box variant="a" style={{ marginBottom: 12 }}>
           {areaDetails.npcs?.length > 0 && (
             <div className="mb-2">
-              <h3 className="text-xs text-metin-gold font-medieval mb-1">NPCs</h3>
+              <h3 className="text-sm text-metin-gold font-medieval mb-1">NPCs</h3>
               <div className="flex gap-1 flex-wrap">
                 {areaDetails.npcs.map((npc) => (
                   <button key={npc.id} onClick={() => handleNpc(npc)}
-                    className="metin-btn metin-btn-sm text-xs">
+                    className="metin-btn metin-btn-sm text-sm">
                     {npc.name}
                   </button>
                 ))}
@@ -79,39 +75,39 @@ export default function MapPanel() {
 
           {areaDetails.mobs?.length > 0 && (
             <div>
-              <h3 className="text-xs text-metin-gold font-medieval mb-1">Monstros ({areaDetails.mobs.length})</h3>
-              <button onClick={handleCombat} className="metin-btn metin-btn-sm text-xs">
+              <h3 className="text-sm text-metin-gold font-medieval mb-1">Monstros ({areaDetails.mobs.length})</h3>
+              <button onClick={handleCombat} className="metin-btn metin-btn-sm text-sm">
                 Entrar em Combate
               </button>
             </div>
           )}
-        </div>
+        </Metin2Box>
       )}
 
-      <div className="divider" />
-      <h3 className="text-xs text-metin-gold font-medieval mb-2">Areas Disponiveis</h3>
+      <h3 className="text-sm text-metin-gold font-medieval mb-2">Areas Disponiveis</h3>
 
       <div className="grid grid-cols-2 gap-2 max-h-[40vh] overflow-y-auto">
         {(Array.isArray(areas) ? areas : (areas?.data || [])).map((area) => {
           const isCurrent = area.id === character?.current_area_id;
           return (
-            <button key={area.id}
-              onClick={() => !isCurrent && handleTravel(area.id)}
-              disabled={isCurrent}
-              className={`metin-panel p-2 text-left text-xs border rounded-sm transition-colors
-                ${isCurrent ? 'border-metin-gold bg-metin-gold/10' : 'border-metin-border hover:border-metin-border-gold'}`}>
-              <div className="font-medieval text-sm text-gray-200">{area.name}</div>
-              <div className="text-gray-500">
-                Lv.{area.level_min}-{area.level_max}
-              </div>
-              <div className={`text-xs ${area.type === 'village' ? 'text-metin-green' : 'text-metin-red'}`}>
-                {area.type === 'village' ? 'Vila' : 'Aventura'}
-              </div>
-              {isCurrent && <div className="text-metin-gold text-xs mt-1">Voce esta aqui</div>}
-            </button>
+            <Metin2Box key={area.id} variant="a">
+              <button
+                onClick={() => !isCurrent && handleTravel(area.id)}
+                disabled={isCurrent}
+                className="w-full text-left text-sm transition-colors">
+                <div className="font-medieval text-sm text-gray-200">{area.name}</div>
+                <div className="text-gray-500">
+                  Lv.{area.level_min}-{area.level_max}
+                </div>
+                <div className={`text-sm ${area.type === 'village' ? 'text-metin-green' : 'text-metin-red'}`}>
+                  {area.type === 'village' ? 'Vila' : 'Aventura'}
+                </div>
+                {isCurrent && <div className="text-metin-gold text-sm mt-1">Voce esta aqui</div>}
+              </button>
+            </Metin2Box>
           );
         })}
       </div>
-    </div>
+    </Metin2Window>
   );
 }

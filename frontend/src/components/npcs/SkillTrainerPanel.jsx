@@ -3,6 +3,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { fetchClassSkills, fetchCharacterSkills, learnSkill, upgradeSkill } from '../../store/slices/skillSlice';
 import { loadCharacter } from '../../store/slices/characterSlice';
 import { closePanel, addNotification } from '../../store/slices/uiSlice';
+import { Metin2Window } from '../metin2ui';
 
 export default function SkillTrainerPanel() {
   const dispatch = useDispatch();
@@ -42,14 +43,9 @@ export default function SkillTrainerPanel() {
   };
 
   return (
-    <div className="metin-panel-gold p-4 w-[400px]">
-      <div className="flex justify-between items-center mb-3">
-        <h2 className="panel-title !mb-0 !pb-0 !border-0">Treinador</h2>
-        <button onClick={() => dispatch(closePanel())} className="text-gray-500 hover:text-metin-gold">X</button>
-      </div>
-      <div className="divider-gold" />
+    <Metin2Window title="Treinador" onClose={() => dispatch(closePanel())} variant="gold" style={{ width: 400 }}>
 
-      <div className="text-xs text-metin-gold mb-2">Skill Points: {character?.skill_points || 0}</div>
+      <div className="text-sm text-metin-gold mb-2">Skill Points: {character?.skill_points || 0}</div>
 
       <div className="space-y-2 max-h-[60vh] overflow-y-auto">
         {(Array.isArray(classSkills) ? classSkills : []).map((skill) => {
@@ -62,14 +58,14 @@ export default function SkillTrainerPanel() {
               <div className="flex justify-between items-start">
                 <div>
                   <div className="text-sm font-medieval text-metin-gold">{skill.name}</div>
-                  <div className="text-xs text-gray-500">
+                  <div className="text-sm text-gray-500">
                     {skill.type} | {skill.damage_type} | Lv.Req: {skill.level_required}
                   </div>
                 </div>
-                {learned && <span className="text-xs text-metin-green">Lv.{learned.level || learned.skill_level}/{skill.max_level}</span>}
+                {learned && <span className="text-sm text-metin-green">Lv.{learned.level || learned.skill_level}/{skill.max_level}</span>}
               </div>
-              <p className="text-xs text-gray-400 mt-1">{skill.description}</p>
-              <div className="text-xs text-gray-500 mt-1">
+              <p className="text-sm text-gray-400 mt-1">{skill.description}</p>
+              <div className="text-sm text-gray-500 mt-1">
                 MP: {skill.mp_cost} | Dano: {skill.base_damage} | CD: {skill.cooldown}
               </div>
 
@@ -91,6 +87,6 @@ export default function SkillTrainerPanel() {
           );
         })}
       </div>
-    </div>
+    </Metin2Window>
   );
 }

@@ -4,6 +4,7 @@ import { closePanel, addNotification } from '../../store/slices/uiSlice';
 import { loadCharacter } from '../../store/slices/characterSlice';
 import { fetchInventory } from '../../store/slices/inventorySlice';
 import { getRarityColor, formatNumber } from '../../utils/helpers';
+import { Metin2Window, Metin2Button } from '../metin2ui';
 import * as api from '../../services/api';
 
 export default function BlacksmithPanel() {
@@ -29,10 +30,8 @@ export default function BlacksmithPanel() {
       const res = await api.refineItem(character.id, selectedItem.id);
       if (res.success) {
         const d = res.data;
-        dispatch(addNotification({
-          type: d.success ? 'success' : 'error',
-          message: d.message,
-        }));
+        const notifType = d.success ? 'success' : d.broken ? 'error' : 'error';
+        dispatch(addNotification({ type: notifType, message: d.message }));
         dispatch(loadCharacter(character.id));
         dispatch(fetchInventory(character.id));
         setSelectedItem(null);
@@ -71,12 +70,7 @@ export default function BlacksmithPanel() {
   };
 
   return (
-    <div className="metin-panel-gold p-4 w-[420px]">
-      <div className="flex justify-between items-center mb-3">
-        <h2 className="panel-title !mb-0 !pb-0 !border-0">Ferreiro</h2>
-        <button onClick={() => dispatch(closePanel())} className="text-gray-500 hover:text-metin-gold">X</button>
-      </div>
-      <div className="divider-gold" />
+    <Metin2Window title="Ferreiro" onClose={() => dispatch(closePanel())} variant="gold" style={{ width: 420 }}>
 
       <div className="flex gap-1 mb-3">
         {['refine', 'bonus', 'craft'].map((t) => (
@@ -89,29 +83,87 @@ export default function BlacksmithPanel() {
 
       {tab === 'refine' && (
         <div>
-          <p className="text-gray-400 text-xs mb-2">Selecione um item para refinar (requer pergaminho de refino):</p>
+          <p className="text-gray-400 text-sm mb-2">
+            Selecione um item para refinar. Pergaminho é opcional mas protege contra quebra.
+          </p>
           <div className="space-y-1 max-h-[40vh] overflow-y-auto mb-3">
-            {refineableItems.map((item) => (
-              <button key={item.id} onClick={() => setSelectedItem(item)}
-                className={`w-full metin-panel p-2 text-left text-sm border ${selectedItem?.id === item.id ? 'border-metin-gold' : 'border-metin-border'}`}>
-                <span style={{ color: getRarityColor(item.rarity) }}>
-                  {item.refinement > 0 && `+${item.refinement} `}{item.name}
-                </span>
-              </button>
-            ))}
-            {refineableItems.length === 0 && <p className="text-gray-600 text-xs">Nenhum item refinavel.</p>}
+            {refineableItems.map((item) => {
+              const ref = item.refinement ?? 0;
+              const chances = [100, 90, 80, 65, 50, 35, 25, 15, 8];
+              const successChance = chances[ref] ?? 0;
+              return (
+                <button key={item.id} onClick={() => setSelectedItem(item)}
+                  className={`w-full metin-panel p-2 text-left text-sm border ${selectedItem?.id === item.id ? 'border-metin-gold' : 'border-metin-border'}`}>
+                  <div className="flex justify-between items-center">
+                    <span style={{ color: getRarityColor(item.rarity) }}>
+                      {ref > 0 && `+${ref} `}{item.name}
+                    </span>
+                    <span className="text-sm text-gray-500">
+                      {successChance}% sucesso
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
+            {refineableItems.length === 0 && <p className="text-gray-600 text-sm">Nenhum item refinavel.</p>}
           </div>
-          {selectedItem && (
-            <button onClick={handleRefine} className="metin-btn-gold w-full">
-              Refinar +{(selectedItem.refinement || 0) + 1}
-            </button>
-          )}
+          {selectedItem && (() => {
+            const ref = selectedItem.refinement ?? 0;
+            const chances = [100, 90, 80, 65, 50, 35, 25, 15, 8];
+            const breakChances = [0, 1, 2, 3, 4, 5, 15, 25, 40];
+            const successChance = chances[ref] ?? 0;
+            const breakChance = breakChances[ref] ?? 50;
+            const hasScroll = items.some((i) => !i.equipped && (i.item_id === 93 || i.item_id === 94));
+            const hasProtection = items.some((i) => !i.equipped && i.item_id === 96);
+            const lvl = selectedItem.level_required || 1;
+            const cost = ref <= 5
+              ? Math.floor((ref + 1) * 500 * (1 + lvl * 0.05))
+              : Math.floor(Math.pow(ref, 2.5) * 1000 * (1 + lvl * 0.1));
+            return (
+              <div className="space-y-2">
+                <div className="metin-panel p-2 text-sm space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Custo:</span>
+                    <span className="text-yellow-400">{formatNumber(cost)} ouro</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Chance de sucesso:</span>
+                    <span className="text-metin-green">{successChance}%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Chance de quebra (sem pergaminho):</span>
+                    <span className={breakChance > 0 ? 'text-red-400' : 'text-gray-500'}>{breakChance}%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Pergaminho:</span>
+                    <span className={hasScroll ? 'text-metin-green' : 'text-yellow-500'}>
+                      {hasScroll ? 'Sim (protege contra quebra)' : 'Sem (item pode quebrar!)'}
+                    </span>
+                  </div>
+                  {hasProtection && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Proteção:</span>
+                      <span className="text-metin-green">Sim (evita perda de nível)</span>
+                    </div>
+                  )}
+                </div>
+                {!hasScroll && breakChance > 0 && (
+                  <div className="text-sm text-red-400 text-center font-medieval">
+                    Sem pergaminho: {breakChance}% de chance do item QUEBRAR!
+                  </div>
+                )}
+                <button onClick={handleRefine} className="metin-btn-gold w-full">
+                  Refinar +{ref + 1} ({formatNumber(cost)} ouro)
+                </button>
+              </div>
+            );
+          })()}
         </div>
       )}
 
       {tab === 'bonus' && (
         <div>
-          <p className="text-gray-400 text-xs mb-2">Selecione um equipamento para adicionar bonus:</p>
+          <p className="text-gray-400 text-sm mb-2">Selecione um equipamento para adicionar bonus:</p>
           <div className="space-y-1 max-h-[40vh] overflow-y-auto mb-3">
             {equipItems.map((item) => (
               <button key={item.id} onClick={() => setSelectedItem(item)}
@@ -135,19 +187,19 @@ export default function BlacksmithPanel() {
             <div key={recipe.id} className="metin-panel p-3">
               <div className="text-sm font-medieval text-metin-gold mb-1">{recipe.name}</div>
               {recipe.result_item && (
-                <div className="text-xs mb-1" style={{ color: getRarityColor(recipe.result_item.rarity) }}>
+                <div className="text-sm mb-1" style={{ color: getRarityColor(recipe.result_item.rarity) }}>
                   Resultado: {recipe.result_item.name} x{recipe.result_quantity}
                 </div>
               )}
-              <div className="text-xs text-gray-500 mb-2">
+              <div className="text-sm text-gray-500 mb-2">
                 {recipe.materials?.map((m) => `${m.item_name} x${m.quantity}`).join(', ')}
               </div>
               <button onClick={() => handleCraft(recipe.id)} className="metin-btn metin-btn-sm">Craftar</button>
             </div>
           ))}
-          {recipes.length === 0 && <p className="text-gray-600 text-xs">Nenhuma receita disponivel.</p>}
+          {recipes.length === 0 && <p className="text-gray-600 text-sm">Nenhuma receita disponivel.</p>}
         </div>
       )}
-    </div>
+    </Metin2Window>
   );
 }
