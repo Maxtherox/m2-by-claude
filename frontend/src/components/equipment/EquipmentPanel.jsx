@@ -1,79 +1,164 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchInventory, unequipItem } from '../../store/slices/inventorySlice';
 import { loadCharacter } from '../../store/slices/characterSlice';
 import { closePanel, addNotification } from '../../store/slices/uiSlice';
-import { getRarityColor, getEquipmentSlotLabel, getItemIcon } from '../../utils/helpers';
+import { getRarityColor } from '../../utils/helpers';
+import {
+  GiCrossedSwords, GiBreastplate, GiVisoredHelm,
+  GiShield, GiBootKick, GiBracer, GiNecklace, GiEarrings,
+} from 'react-icons/gi';
+import { Metin2Panel, Metin2TitleBar, Metin2Box } from '../metin2ui';
 
-const EQUIP_SLOTS = ['weapon', 'armor', 'helmet', 'shield', 'boots', 'earring', 'necklace', 'bracelet'];
+const SLOT_SIZE = 36;
+
+// Layout: left column (head, armor, weapon), center (character silhouette), right column (shield, boots, accessories)
+const LEFT_SLOTS = [
+  { key: 'helmet', label: 'Elmo', Icon: GiVisoredHelm },
+  { key: 'armor', label: 'Armadura', Icon: GiBreastplate },
+  { key: 'weapon', label: 'Arma', Icon: GiCrossedSwords },
+];
+const RIGHT_SLOTS = [
+  { key: 'shield', label: 'Escudo', Icon: GiShield },
+  { key: 'boots', label: 'Botas', Icon: GiBootKick },
+  { key: 'earring', label: 'Brinco', Icon: GiEarrings },
+];
+const BOTTOM_SLOTS = [
+  { key: 'necklace', label: 'Colar', Icon: GiNecklace },
+  { key: 'bracelet', label: 'Bracelete', Icon: GiBracer },
+];
+
+function EquipSlot({ slotDef, item, onUnequip }) {
+  const { label, Icon } = slotDef;
+  const color = item ? getRarityColor(item.rarity) : '#3a2a08';
+
+  return (
+    <div
+      title={item ? `${item.name} (clique para desequipar)` : label}
+      onClick={() => item && onUnequip(item.inv_id)}
+      style={{
+        width: SLOT_SIZE,
+        height: SLOT_SIZE,
+        backgroundImage: 'url(/ui/pattern/board_base.png)',
+        backgroundRepeat: 'repeat',
+        border: `2px solid ${color}`,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        cursor: item ? 'pointer' : 'default',
+        position: 'relative',
+        boxShadow: item ? `inset 0 0 6px ${color}33` : 'none',
+      }}
+    >
+      <div style={{ color, fontSize: item ? 20 : 16, opacity: item ? 1 : 0.3 }}>
+        <Icon />
+      </div>
+      {item?.refinement > 0 && (
+        <span style={{ position: 'absolute', top: 0, left: 1, fontSize: 9, color: '#f0d060', fontWeight: 'bold', textShadow: '0 1px 2px #000', lineHeight: 1 }}>
+          +{item.refinement}
+        </span>
+      )}
+    </div>
+  );
+}
 
 export default function EquipmentPanel() {
   const dispatch = useDispatch();
   const character = useSelector((s) => s.character.data);
-  const { items } = useSelector((s) => s.inventory);
   const equipment = character?.equipment || {};
 
   const handleUnequip = async (invId) => {
     if (!character) return;
     try {
-      await dispatch(unequipItem({ charId: character.id, slot: invId })).unwrap();
+      await dispatch(unequipItem({ charId: character.id, invId })).unwrap();
       dispatch(fetchInventory(character.id));
       dispatch(loadCharacter(character.id));
     } catch (e) {
-      dispatch(addNotification({ type: 'error', message: e || 'Erro' }));
+      dispatch(addNotification({ type: 'error', message: e || 'Erro ao desequipar' }));
     }
   };
 
   return (
-    <div className="metin-panel-gold p-4 w-[350px]">
-      <div className="flex justify-between items-center mb-3">
-        <h2 className="panel-title !mb-0 !pb-0 !border-0">Equipamento</h2>
-        <button onClick={() => dispatch(closePanel())} className="text-gray-500 hover:text-metin-gold">X</button>
-      </div>
-      <div className="divider-gold" />
+    <Metin2Panel variant="board" style={{ width: 260 }}>
+      <Metin2TitleBar title="Equipamento" onClose={() => dispatch(closePanel())} />
 
-      <div className="space-y-2">
-        {EQUIP_SLOTS.map((slot) => {
-          const item = equipment[slot];
-          return (
-            <div key={slot} className="flex items-center gap-3 p-2 metin-panel rounded-sm">
-              <div className={`item-slot ${item ? `rarity-${item.rarity || 'common'}` : ''}`}>
-                {item ? <span className="text-lg">{getItemIcon(item)}</span> : <span className="text-gray-600 text-xs">-</span>}
+      <div style={{ padding: 8 }}>
+        {/* Inner border_b frame */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '16px 1fr 16px',
+          gridTemplateRows: '16px 1fr 16px',
+        }}>
+          <div style={{ backgroundImage: 'url(/ui/pattern/border_b_left_top.png)', backgroundSize: 'cover' }} />
+          <div style={{ backgroundImage: 'url(/ui/pattern/border_b_top.png)', backgroundRepeat: 'repeat-x', backgroundSize: 'auto 16px' }} />
+          <div style={{ backgroundImage: 'url(/ui/pattern/border_b_right_top.png)', backgroundSize: 'cover' }} />
+
+          <div style={{ backgroundImage: 'url(/ui/pattern/border_b_left.png)', backgroundRepeat: 'repeat-y', backgroundSize: '16px auto' }} />
+          <div style={{
+            backgroundImage: 'url(/ui/pattern/border_b_center.png)',
+            backgroundRepeat: 'repeat',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 6,
+            padding: 8,
+          }}>
+            {/* Top row: left slots - silhouette - right slots */}
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {LEFT_SLOTS.map(s => (
+                  <EquipSlot key={s.key} slotDef={s} item={equipment[s.key]} onUnequip={handleUnequip} />
+                ))}
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-xs text-gray-500 font-medieval">{getEquipmentSlotLabel(slot)}</div>
-                {item ? (
-                  <div className="text-sm font-medieval truncate" style={{ color: getRarityColor(item.rarity) }}>
-                    {item.refinement > 0 && `+${item.refinement} `}{item.name}
-                  </div>
-                ) : (
-                  <div className="text-sm text-gray-600">Vazio</div>
-                )}
+
+              {/* Character info box */}
+              <Metin2Box variant="a">
+                <div style={{ textAlign: 'center', padding: '4px 2px', minHeight: 90 }}>
+                  <div style={{ color: '#c8b06a', fontSize: 13, fontWeight: 'bold' }}>{character?.name}</div>
+                  <div style={{ color: '#888', fontSize: 12 }}>Lv.{character?.level}</div>
+                  <div style={{ color: '#666', fontSize: 11, marginTop: 4 }}>{character?.class_name}</div>
+                </div>
+              </Metin2Box>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {RIGHT_SLOTS.map(s => (
+                  <EquipSlot key={s.key} slotDef={s} item={equipment[s.key]} onUnequip={handleUnequip} />
+                ))}
               </div>
-              {item && (
-                <button onClick={() => handleUnequip(item.inv_id)} className="metin-btn metin-btn-sm text-xs">
-                  Tirar
-                </button>
-              )}
             </div>
-          );
-        })}
+
+            {/* Bottom row: necklace, bracelet */}
+            <div style={{ display: 'flex', gap: 4 }}>
+              {BOTTOM_SLOTS.map(s => (
+                <EquipSlot key={s.key} slotDef={s} item={equipment[s.key]} onUnequip={handleUnequip} />
+              ))}
+            </div>
+          </div>
+          <div style={{ backgroundImage: 'url(/ui/pattern/border_b_right.png)', backgroundRepeat: 'repeat-y', backgroundSize: '16px auto' }} />
+
+          <div style={{ backgroundImage: 'url(/ui/pattern/border_b_left_bottom.png)', backgroundSize: 'cover' }} />
+          <div style={{ backgroundImage: 'url(/ui/pattern/border_b_bottom.png)', backgroundRepeat: 'repeat-x', backgroundSize: 'auto 16px' }} />
+          <div style={{ backgroundImage: 'url(/ui/pattern/border_b_right_bottom.png)', backgroundSize: 'cover' }} />
+        </div>
       </div>
 
-      {character?.equipment_bonuses && (
-        <>
-          <div className="divider mt-3" />
-          <h3 className="text-metin-gold text-xs font-medieval mb-1">Bonus do Equipamento</h3>
-          <div className="text-xs space-y-0.5">
-            {Object.entries(character.equipment_bonuses).filter(([, v]) => v > 0).map(([k, v]) => (
-              <div key={k} className="stat-row">
-                <span className="text-gray-500">{k.replace(/_/g, ' ')}</span>
-                <span className="text-metin-green">+{v}</span>
-              </div>
-            ))}
-          </div>
-        </>
+      {/* Equipment bonuses */}
+      {character?.equipment_bonuses && Object.values(character.equipment_bonuses).some((v) => v > 0) && (
+        <div className="px-3 pb-2" style={{ paddingTop: 6 }}>
+          <Metin2Box title="Bonus">
+            <div className="text-[13px] space-y-0.5" style={{ padding: '4px 6px' }}>
+              {Object.entries(character.equipment_bonuses)
+                .filter(([, v]) => v > 0)
+                .map(([k, v]) => (
+                  <div key={k} className="flex justify-between gap-1">
+                    <span className="text-gray-500 truncate">{k.replace(/_/g, ' ')}</span>
+                    <span className="text-emerald-400 shrink-0">+{v}</span>
+                  </div>
+                ))}
+            </div>
+          </Metin2Box>
+        </div>
       )}
-    </div>
+    </Metin2Panel>
   );
 }

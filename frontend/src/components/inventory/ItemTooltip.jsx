@@ -17,7 +17,7 @@ export default function ItemTooltip({ item }) {
     const ev = equippedVal ?? 0;
     const diff = iv - ev;
     return (
-      <div key={label} className="flex justify-between text-xs">
+      <div key={label} className="flex justify-between text-sm">
         <span className="text-gray-400">{label}</span>
         <span className="text-gray-200">
           {iv}
@@ -40,7 +40,7 @@ export default function ItemTooltip({ item }) {
       </div>
 
       {/* Rarity + Type */}
-      <div className="text-xs text-gray-500 mb-1">
+      <div className="text-sm text-gray-500 mb-1">
         <span style={{ color: rarityColor }}>{getRarityLabel(item.rarity)}</span>
         {item.equipSlot && <span> - {getEquipmentSlotLabel(item.equipSlot)}</span>}
         {item.type && !item.equipSlot && <span> - {item.type}</span>}
@@ -48,7 +48,7 @@ export default function ItemTooltip({ item }) {
 
       {/* Level requirement */}
       {item.levelRequired > 0 && (
-        <div className="text-xs text-yellow-600 mb-1">
+        <div className="text-sm text-yellow-600 mb-1">
           Nivel requerido: {item.levelRequired}
         </div>
       )}
@@ -73,7 +73,7 @@ export default function ItemTooltip({ item }) {
       {item.bonuses && item.bonuses.length > 0 && (
         <div className="space-y-0.5 mb-2">
           {item.bonuses.map((bonus, i) => (
-            <div key={i} className={`text-xs ${bonus.type === 'special' ? 'text-metin-purple' : 'text-metin-blue'}`}>
+            <div key={i} className={`text-sm ${bonus.type === 'special' ? 'text-metin-purple' : 'text-metin-blue'}`}>
               {bonus.name}: +{bonus.value}{bonus.isPercent ? '%' : ''}
             </div>
           ))}
@@ -84,7 +84,7 @@ export default function ItemTooltip({ item }) {
       {item.effects && (
         <div className="space-y-0.5 mb-2">
           {item.effects.map((effect, i) => (
-            <div key={i} className="text-xs text-metin-green">
+            <div key={i} className="text-sm text-metin-green">
               {effect.description || `${effect.type}: +${effect.value}`}
             </div>
           ))}
@@ -93,20 +93,20 @@ export default function ItemTooltip({ item }) {
 
       {/* Description */}
       {item.description && (
-        <div className="text-xs text-gray-500 italic mt-1 mb-1">{item.description}</div>
+        <div className="text-sm text-gray-500 italic mt-1 mb-1">{item.description}</div>
       )}
 
       <div className="divider" />
 
       {/* Sell price */}
-      <div className="flex justify-between text-xs">
+      <div className="flex justify-between text-sm">
         <span className="text-gray-500">Preco de venda</span>
         <span className="text-metin-gold">{formatNumber(item.sellPrice ?? Math.floor((item.price ?? 0) / 2))} ouro</span>
       </div>
 
       {/* Comparison indicator */}
       {equippedItem && (
-        <div className="text-xs text-gray-600 mt-1 text-center italic">
+        <div className="text-sm text-gray-600 mt-1 text-center italic">
           Comparando com item equipado
         </div>
       )}
