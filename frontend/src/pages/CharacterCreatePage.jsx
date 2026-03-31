@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { createCharacter, clearError, clearCreated } from '../store/slices/characterSlice';
 import { fetchKingdoms, fetchClasses } from '../store/slices/gameSlice';
+import { Metin2Panel, Metin2TitleBar, Metin2Button, Metin2Separator } from '../components/metin2ui';
 
 const DEFAULT_KINGDOMS = [
   { id: 'shinsoo', name: 'Shinsoo', color: 'kingdom-shinsoo', description: 'O reino da sabedoria e harmonia. Governado pela rainha, seus guerreiros buscam equilibrio entre forca e espirito.' },
@@ -88,24 +89,27 @@ export default function CharacterCreatePage() {
         style={{ backgroundImage: 'radial-gradient(circle at 30% 30%, #4080d0 0%, transparent 40%), radial-gradient(circle at 70% 70%, #d04040 0%, transparent 40%)' }}
       />
 
-      <div className="relative z-10 metin-panel-gold p-6 w-full max-w-2xl animate-fade-in">
-        {/* Header */}
-        <div className="text-center mb-6">
-          <h1 className="text-2xl font-medieval text-metin-gold" style={{ textShadow: '0 0 10px rgba(212,168,50,0.4)' }}>
-            Criar Personagem
-          </h1>
-          {/* Step indicators */}
-          <div className="flex justify-center gap-2 mt-3">
-            {[1, 2, 3, 4].map((s) => (
-              <div key={s} className={`w-8 h-1 rounded-full transition-colors duration-300 ${s <= step ? 'bg-metin-gold' : 'bg-metin-border'}`} />
-            ))}
-          </div>
-          <p className="text-gray-500 text-xs mt-2 font-medieval">
-            {step === 1 && 'Escolha seu Reino'}
-            {step === 2 && 'Escolha sua Classe'}
-            {step === 3 && 'Nomeie seu Guerreiro'}
-            {step === 4 && 'Confirme sua Criacao'}
-          </p>
+      <div className="relative z-10 w-full max-w-2xl animate-fade-in">
+      <Metin2Panel variant="board">
+      <div style={{ padding: 24 }}>
+        {/* Header with titlebar */}
+        <Metin2TitleBar title={
+          step === 1 ? 'Escolha seu Reino' :
+          step === 2 ? 'Escolha sua Classe' :
+          step === 3 ? 'Nomeie seu Guerreiro' :
+          'Confirme sua Criacao'
+        } />
+
+        {/* Step indicators */}
+        <div className="flex justify-center gap-2 my-4">
+          {[1, 2, 3, 4].map((s) => (
+            <div key={s} style={{
+              width: 32, height: 4,
+              backgroundImage: s <= step ? 'url(/ui/pattern/gauge_red.png)' : 'url(/ui/pattern/gauge_slot_center.png)',
+              backgroundRepeat: 'repeat-x',
+              backgroundSize: 'auto 4px',
+            }} />
+          ))}
         </div>
 
         {/* Step 1: Kingdom */}
@@ -114,20 +118,20 @@ export default function CharacterCreatePage() {
             {kingdoms.map((k) => {
               const colors = getKingdomColorClass(k);
               const isSelected = selectedKingdom?.id === k.id || selectedKingdom === k.id;
+              const variant = isSelected ? 'gold' : 'thin';
               return (
-                <button
-                  key={k.id}
-                  onClick={() => setSelectedKingdom(k)}
-                  className={`p-4 rounded-sm border-2 transition-all duration-300 text-left
-                    ${isSelected ? `${colors.border} ${colors.bg} ${colors.glow}` : 'border-metin-border bg-metin-dark hover:border-metin-border-gold'}`}
-                >
-                  <h3 className={`text-lg font-medieval ${isSelected ? colors.text : 'text-gray-300'}`}>
-                    {k.name}
-                  </h3>
-                  <p className="text-gray-500 text-xs mt-2 leading-relaxed">
-                    {k.description}
-                  </p>
-                </button>
+                <div key={k.id} onClick={() => setSelectedKingdom(k)} style={{ cursor: 'pointer' }}>
+                  <Metin2Panel variant={variant}>
+                    <div style={{ padding: 12 }}>
+                      <h3 className={`text-lg font-bold ${isSelected ? colors.text : 'text-gray-300'}`}>
+                        {k.name}
+                      </h3>
+                      <p className="text-gray-500 text-sm mt-2 leading-relaxed">
+                        {k.description}
+                      </p>
+                    </div>
+                  </Metin2Panel>
+                </div>
               );
             })}
           </div>
@@ -139,40 +143,27 @@ export default function CharacterCreatePage() {
             {classes.map((c) => {
               const isSelected = selectedClass?.id === c.id || selectedClass === c.id;
               return (
-                <button
-                  key={c.id}
-                  onClick={() => setSelectedClass(c)}
-                  className={`p-4 rounded-sm border-2 transition-all duration-300 text-left
-                    ${isSelected ? 'border-metin-gold bg-metin-gold/10 shadow-metin-gold' : 'border-metin-border bg-metin-dark hover:border-metin-border-gold'}`}
-                >
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-2xl">{c.icon}</span>
-                    <h3 className={`text-lg font-medieval ${isSelected ? 'text-metin-gold' : 'text-gray-300'}`}>
-                      {c.name}
-                    </h3>
-                  </div>
-                  <p className="text-gray-500 text-xs mb-3">{c.description}</p>
-                  {c.stats && (
-                    <div className="grid grid-cols-4 gap-1 text-xs">
-                      <div className="text-center">
-                        <span className="text-red-400">FOR</span>
-                        <div className="text-gray-300">{c.stats.str}</div>
+                <div key={c.id} onClick={() => setSelectedClass(c)} style={{ cursor: 'pointer' }}>
+                  <Metin2Panel variant={isSelected ? 'gold' : 'thin'}>
+                    <div style={{ padding: 12 }}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-2xl">{c.icon}</span>
+                        <h3 className={`text-lg font-bold ${isSelected ? 'text-metin-gold' : 'text-gray-300'}`}>
+                          {c.name}
+                        </h3>
                       </div>
-                      <div className="text-center">
-                        <span className="text-blue-400">INT</span>
-                        <div className="text-gray-300">{c.stats.int}</div>
-                      </div>
-                      <div className="text-center">
-                        <span className="text-green-400">VIT</span>
-                        <div className="text-gray-300">{c.stats.vit}</div>
-                      </div>
-                      <div className="text-center">
-                        <span className="text-yellow-400">DES</span>
-                        <div className="text-gray-300">{c.stats.dex}</div>
-                      </div>
+                      <p className="text-gray-500 text-sm mb-3">{c.description}</p>
+                      {c.stats && (
+                        <div className="grid grid-cols-4 gap-1 text-sm">
+                          <div className="text-center"><span className="text-red-400">FOR</span><div className="text-gray-300">{c.stats.str}</div></div>
+                          <div className="text-center"><span className="text-blue-400">INT</span><div className="text-gray-300">{c.stats.int}</div></div>
+                          <div className="text-center"><span className="text-green-400">VIT</span><div className="text-gray-300">{c.stats.vit}</div></div>
+                          <div className="text-center"><span className="text-yellow-400">DES</span><div className="text-gray-300">{c.stats.dex}</div></div>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </button>
+                  </Metin2Panel>
+                </div>
               );
             })}
           </div>
@@ -190,7 +181,7 @@ export default function CharacterCreatePage() {
               className="metin-input text-lg text-center"
               maxLength={20}
             />
-            {nameError && <p className="text-red-400 text-xs mt-2">{nameError}</p>}
+            {nameError && <p className="text-red-400 text-sm mt-2">{nameError}</p>}
 
             {/* Preview */}
             <div className="mt-6 metin-panel p-4">
@@ -234,7 +225,7 @@ export default function CharacterCreatePage() {
                 {selectedClass?.stats && (
                   <>
                     <div className="divider" />
-                    <div className="grid grid-cols-4 gap-2 text-xs">
+                    <div className="grid grid-cols-4 gap-2 text-sm">
                       <div className="text-center"><span className="text-red-400">FOR</span><div>{selectedClass.stats.str}</div></div>
                       <div className="text-center"><span className="text-blue-400">INT</span><div>{selectedClass.stats.int}</div></div>
                       <div className="text-center"><span className="text-green-400">VIT</span><div>{selectedClass.stats.vit}</div></div>
@@ -255,32 +246,31 @@ export default function CharacterCreatePage() {
 
         {/* Navigation */}
         <div className="flex justify-between items-center">
-          <button
+          <Metin2Button
             onClick={step === 1 ? () => navigate('/') : handleBack}
-            className="metin-btn"
             disabled={loading}
           >
             {step === 1 ? 'Voltar' : 'Anterior'}
-          </button>
+          </Metin2Button>
 
           {step < 4 ? (
-            <button
+            <Metin2Button
               onClick={handleNext}
-              className="metin-btn-gold"
               disabled={(step === 1 && !selectedKingdom) || (step === 2 && !selectedClass)}
             >
               Proximo
-            </button>
+            </Metin2Button>
           ) : (
-            <button
+            <Metin2Button
               onClick={handleCreate}
-              className="metin-btn-gold"
               disabled={loading}
             >
               {loading ? 'Criando...' : 'Criar Personagem'}
-            </button>
+            </Metin2Button>
           )}
         </div>
+      </div>
+      </Metin2Panel>
       </div>
     </div>
   );
