@@ -14,7 +14,9 @@ router.post('/', async (req, res) => {
 // GET /:id - Load character with full stats
 router.get('/:id', async (req, res) => {
   try {
-    const character = await characterService.getCharacter(parseInt(req.params.id));
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ success: false, error: 'ID inválido' });
+    const character = await characterService.getCharacter(id);
     res.json({ success: true, data: character });
   } catch (error) {
     res.status(404).json({ success: false, error: error.message });
@@ -26,6 +28,7 @@ router.put('/:id', async (req, res) => {
   try {
     const db = require('../database/connection');
     const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ success: false, error: 'ID inválido' });
 
     const character = await db('characters').where({ id }).first();
     if (!character) {
@@ -57,10 +60,9 @@ router.put('/:id', async (req, res) => {
 // POST /:id/allocate-points
 router.post('/:id/allocate-points', async (req, res) => {
   try {
-    const character = await characterService.allocateStatusPoints(
-      parseInt(req.params.id),
-      req.body
-    );
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ success: false, error: 'ID inválido' });
+    const character = await characterService.allocateStatusPoints(id, req.body);
     res.json({ success: true, data: character });
   } catch (error) {
     res.status(400).json({ success: false, error: error.message });
@@ -70,11 +72,13 @@ router.post('/:id/allocate-points', async (req, res) => {
 // POST /:id/add-honor
 router.post('/:id/add-honor', async (req, res) => {
   try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ success: false, error: 'ID inválido' });
     const { amount } = req.body;
     if (amount === undefined || amount === null) {
       return res.status(400).json({ success: false, error: 'amount é obrigatório' });
     }
-    const character = await characterService.addHonor(parseInt(req.params.id), amount);
+    const character = await characterService.addHonor(id, amount);
     res.json({ success: true, data: character });
   } catch (error) {
     res.status(400).json({ success: false, error: error.message });
