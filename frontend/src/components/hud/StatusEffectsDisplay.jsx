@@ -28,7 +28,7 @@ function EffectTooltip({ effect }) {
   const colors = getEffectColors(effect.type);
   return (
     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 z-50 pointer-events-none">
-      <div className={`bg-metin-dark border ${colors.border} rounded px-2 py-1.5 text-xs whitespace-nowrap shadow-lg`}>
+      <div className={`bg-metin-dark border ${colors.border} rounded px-2 py-1.5 text-sm whitespace-nowrap shadow-lg`}>
         <div className={`font-bold ${colors.text} mb-0.5`}>{effect.name}</div>
         {effect.description && (
           <div className="text-gray-400 mb-0.5">{effect.description}</div>
@@ -63,15 +63,15 @@ function EffectBadge({ effect }) {
     >
       <div
         className={`
-          flex items-center gap-0.5 px-1.5 py-0.5 rounded-full border text-[11px] leading-none
+          flex items-center gap-0.5 px-1.5 py-0.5 rounded-full border text-[13px] leading-none
           cursor-default select-none
           ${colors.border} ${colors.bg} ${colors.text}
         `}
       >
         <span className="font-bold">{label}</span>
-        <span className="text-[10px] opacity-70">{effect.remaining_turns}t</span>
+        <span className="text-[13px] opacity-70">{effect.remaining_turns}t</span>
         {effect.stacks > 1 && (
-          <span className="text-[10px] opacity-60">x{effect.stacks}</span>
+          <span className="text-[13px] opacity-60">x{effect.stacks}</span>
         )}
       </div>
       {hovered && <EffectTooltip effect={effect} />}
