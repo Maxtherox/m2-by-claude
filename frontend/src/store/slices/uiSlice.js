@@ -6,6 +6,7 @@ const uiSlice = createSlice({
     activePanel: null,
     activeNpc: null,
     activeMob: null,
+    killedMobInstanceId: null,
     tooltip: null,
     notifications: [],
     modal: null,
@@ -70,6 +71,12 @@ const uiSlice = createSlice({
     closeModal: (state) => {
       state.modal = null;
     },
+    setKilledMobInstanceId: (state, action) => {
+      state.killedMobInstanceId = action.payload;
+    },
+    clearKilledMobInstanceId: (state) => {
+      state.killedMobInstanceId = null;
+    },
   },
 });
 
@@ -86,5 +93,7 @@ export const {
   removeNotification,
   setModal,
   closeModal,
+  setKilledMobInstanceId,
+  clearKilledMobInstanceId,
 } = uiSlice.actions;
 export default uiSlice.reducer;
