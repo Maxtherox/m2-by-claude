@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { closePanel } from '../../store/slices/uiSlice';
 import { getNPCDialog, getDialogNode, executeDialogAction } from '../../services/api';
+import { Metin2Panel, Metin2TitleBar } from '../metin2ui';
 
 export default function DialogPanel() {
   const dispatch = useDispatch();
@@ -71,20 +72,8 @@ export default function DialogPanel() {
   if (!activeNpc) return null;
 
   return (
-    <div className="metin-panel-gold p-0 w-[400px] select-none">
-      {/* Header */}
-      <div className="flex justify-between items-center px-4 pt-3 pb-2">
-        <h2 className="text-metin-gold font-medieval text-lg tracking-wide">
-          {activeNpc.name}
-        </h2>
-        <button
-          onClick={handleClose}
-          className="text-gray-500 hover:text-metin-gold text-sm"
-        >
-          ✕
-        </button>
-      </div>
-      <div className="divider-gold" />
+    <Metin2Panel variant="gold" className="select-none" style={{ width: 400 }}>
+      <Metin2TitleBar title={activeNpc.name} onClose={handleClose} />
 
       {/* Dialog body */}
       <div className="px-4 py-3">
@@ -104,7 +93,7 @@ export default function DialogPanel() {
             {/* Speaker & Text */}
             <div className="metin-panel p-4 mb-3">
               <span
-                className={`text-xs font-medieval tracking-wide mb-1 block ${
+                className={`text-sm font-medieval tracking-wide mb-1 block ${
                   currentNode.speaker === 'player' ? 'text-cyan-400' : 'text-metin-gold'
                 }`}
               >
@@ -141,6 +130,6 @@ export default function DialogPanel() {
           </>
         )}
       </div>
-    </div>
+    </Metin2Panel>
   );
 }

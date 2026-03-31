@@ -9,6 +9,7 @@ import {
   deleteSave,
   clearLastAction,
 } from '../../store/slices/saveSlice';
+import { Metin2Panel, Metin2TitleBar } from '../metin2ui';
 
 export default function SaveLoadPanel() {
   const dispatch = useDispatch();
@@ -118,23 +119,13 @@ export default function SaveLoadPanel() {
   };
 
   return (
-    <div className="metin-panel-gold p-0 w-[400px] select-none">
-      {/* Header */}
-      <div className="flex justify-between items-center px-4 pt-3 pb-2">
-        <h2 className="text-metin-gold font-medieval text-lg">Salvar / Carregar</h2>
-        <button
-          onClick={() => dispatch(closePanel())}
-          className="text-gray-500 hover:text-metin-gold text-sm"
-        >
-          ✕
-        </button>
-      </div>
-      <div className="divider-gold" />
+    <Metin2Panel variant="board" className="select-none" style={{ width: 400 }}>
+      <Metin2TitleBar title="Salvar / Carregar" onClose={() => dispatch(closePanel())} />
 
       {/* Feedback banner */}
       {feedback && (
         <div
-          className={`mx-4 mt-2 px-3 py-1.5 text-xs text-center rounded ${
+          className={`mx-4 mt-2 px-3 py-1.5 text-sm text-center rounded ${
             feedback.type === 'success'
               ? 'bg-green-900/40 text-green-300 border border-green-700/50'
               : 'bg-red-900/40 text-red-300 border border-red-700/50'
@@ -199,7 +190,7 @@ export default function SaveLoadPanel() {
                             <div className="text-sm text-metin-gold font-medieval truncate">
                               {slot.label || `Save ${slotNumber}`}
                             </div>
-                            <div className="text-xs text-gray-500">
+                            <div className="text-sm text-gray-500">
                               {formatDate(slot.saved_at)}
                             </div>
                           </>
@@ -212,7 +203,7 @@ export default function SaveLoadPanel() {
                     {slot && (
                       <button
                         onClick={(e) => handleDelete(e, slotNumber)}
-                        className="text-gray-600 hover:text-red-400 text-xs ml-2 px-1"
+                        className="text-gray-600 hover:text-red-400 text-sm ml-2 px-1"
                         title="Excluir save"
                       >
                         ✕
@@ -223,11 +214,11 @@ export default function SaveLoadPanel() {
                   {/* Confirm prompt for load mode */}
                   {isConfirming && mode === 'load' && slot && (
                     <div className="mt-2 pt-2 border-t border-gray-700/50 flex items-center justify-between">
-                      <span className="text-xs text-gray-400">Confirmar carregamento?</span>
+                      <span className="text-sm text-gray-400">Confirmar carregamento?</span>
                       <div className="flex gap-2">
                         <button
                           onClick={(e) => { e.stopPropagation(); handleCancel(); }}
-                          className="metin-btn metin-btn-sm text-xs"
+                          className="metin-btn metin-btn-sm text-sm"
                         >
                           Não
                         </button>
@@ -236,7 +227,7 @@ export default function SaveLoadPanel() {
                             e.stopPropagation();
                             dispatch(loadGame({ charId: character.id, slotNumber }));
                           }}
-                          className="metin-btn metin-btn-sm text-xs"
+                          className="metin-btn metin-btn-sm text-sm"
                         >
                           Sim
                         </button>
@@ -259,19 +250,19 @@ export default function SaveLoadPanel() {
                       />
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-gray-400">
+                      <span className="text-sm text-gray-400">
                         {slot ? 'Sobrescrever save?' : 'Salvar neste slot?'}
                       </span>
                       <div className="flex gap-2">
                         <button
                           onClick={handleCancel}
-                          className="metin-btn metin-btn-sm text-xs"
+                          className="metin-btn metin-btn-sm text-sm"
                         >
                           Cancelar
                         </button>
                         <button
                           onClick={() => handleConfirmSave(slotNumber)}
-                          className="metin-btn metin-btn-sm text-xs"
+                          className="metin-btn metin-btn-sm text-sm"
                         >
                           Confirmar
                         </button>
@@ -283,6 +274,6 @@ export default function SaveLoadPanel() {
             );
           })}
       </div>
-    </div>
+    </Metin2Panel>
   );
 }

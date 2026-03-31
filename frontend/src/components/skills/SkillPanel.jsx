@@ -11,6 +11,7 @@ import {
 } from '../../store/slices/skillSlice';
 import { loadCharacter } from '../../store/slices/characterSlice';
 import { closePanel } from '../../store/slices/uiSlice';
+import { Metin2Panel, Metin2TitleBar, Metin2Button, Metin2Box } from '../metin2ui';
 
 const DMG_TYPE_LABELS = {
   physical: { label: 'Fisico', color: 'text-red-400' },
@@ -114,25 +115,21 @@ export default function SkillPanel() {
   const honorRank = character?.honor_rank || 'Neutra';
 
   return (
-    <div className="metin-panel-gold p-0 w-[440px] select-none">
-      {/* Header */}
-      <div className="px-4 pt-3 pb-2 flex justify-between items-start">
-        <h2 className="text-metin-gold font-medieval text-lg tracking-wide">Habilidades</h2>
-        <button onClick={() => dispatch(closePanel())} className="text-gray-600 hover:text-metin-gold text-sm mt-1">✕</button>
-      </div>
+    <Metin2Panel variant="board" className="select-none" style={{ width: 440 }}>
+      <Metin2TitleBar title="Habilidades" onClose={() => dispatch(closePanel())} />
 
       {/* Resources bar */}
-      <div className="px-4 pb-2 flex gap-4 text-xs">
+      <div className="px-4 py-2 flex gap-4 text-sm">
         <span className="text-gray-500">Skill Pts: <span className="text-metin-cyan">{sp}</span></span>
         <span className="text-gray-500">Honra: <span className="text-amber-500">{honor}</span></span>
-        <span className="text-gray-500 text-[10px]">({honorRank})</span>
+        <span className="text-gray-500 text-[13px]">({honorRank})</span>
       </div>
 
       <div className="divider-gold mx-4" />
 
       {/* Feedback banner */}
       {feedback && (
-        <div className={`mx-4 mt-2 px-3 py-1.5 text-xs rounded ${
+        <div className={`mx-4 mt-2 px-3 py-1.5 text-sm rounded ${
           feedback.type === 'success' ? 'bg-green-900/40 text-green-300 border border-green-700/50' : 'bg-red-900/40 text-red-300 border border-red-700/50'
         }`}>
           {feedback.text}
@@ -141,166 +138,172 @@ export default function SkillPanel() {
 
       <div className="flex" style={{ minHeight: '350px' }}>
         {/* Skills list */}
-        <div className="w-[200px] border-r border-metin-border/30 overflow-y-auto max-h-[55vh] p-2 space-y-1">
-          {(Array.isArray(classSkills) ? classSkills : []).map((skill) => {
-            const learned = learnedMap[skill.id];
-            const isSelected = selectedSkillId === skill.id;
-            const stage = learned?.progress_stage || 'NORMAL';
+        <div className="w-[200px] p-2">
+          <Metin2Box variant="a">
+            <div className="overflow-y-auto max-h-[55vh] space-y-1">
+              {(Array.isArray(classSkills) ? classSkills : []).map((skill) => {
+                const learned = learnedMap[skill.id];
+                const isSelected = selectedSkillId === skill.id;
+                const stage = learned?.progress_stage || 'NORMAL';
 
-            return (
-              <button
-                key={skill.id}
-                onClick={() => setSelectedSkillId(skill.id)}
-                className={`w-full text-left px-2 py-1.5 rounded transition-all text-xs ${
-                  isSelected
-                    ? 'bg-metin-gold/10 border border-metin-border-gold'
-                    : learned
-                    ? 'hover:bg-metin-dark-lighter border border-transparent'
-                    : 'opacity-50 hover:opacity-70 border border-transparent'
-                }`}
-              >
-                <div className="flex justify-between items-center">
-                  <span className={`font-medieval ${learned ? 'text-metin-gold' : 'text-gray-600'}`}>
-                    {skill.name}
-                  </span>
-                  {learned && (
-                    <span className={`text-[10px] font-mono ${STAGE_COLORS[stage] || 'text-gray-400'}`}>
-                      {learned.progression_label || `Lv.${learned.level}`}
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-1 mt-0.5">
-                  <span className={`text-[10px] ${DMG_TYPE_LABELS[skill.damage_type]?.color || 'text-gray-500'}`}>
-                    {DMG_TYPE_LABELS[skill.damage_type]?.label || skill.damage_type}
-                  </span>
-                  {learned?.cooldown_remaining > 0 && (
-                    <span className="text-[10px] text-red-400 ml-auto">CD: {learned.cooldown_remaining}</span>
-                  )}
-                </div>
-              </button>
-            );
-          })}
+                return (
+                  <button
+                    key={skill.id}
+                    onClick={() => setSelectedSkillId(skill.id)}
+                    className={`w-full text-left px-2 py-1.5 rounded transition-all text-sm ${
+                      isSelected
+                        ? 'bg-metin-gold/10 border border-metin-border-gold'
+                        : learned
+                        ? 'hover:bg-metin-dark-lighter border border-transparent'
+                        : 'opacity-50 hover:opacity-70 border border-transparent'
+                    }`}
+                  >
+                    <div className="flex justify-between items-center">
+                      <span className={`font-medieval ${learned ? 'text-metin-gold' : 'text-gray-600'}`}>
+                        {skill.name}
+                      </span>
+                      {learned && (
+                        <span className={`text-[13px] font-mono ${STAGE_COLORS[stage] || 'text-gray-400'}`}>
+                          {learned.progression_label || `Lv.${learned.level}`}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <span className={`text-[13px] ${DMG_TYPE_LABELS[skill.damage_type]?.color || 'text-gray-500'}`}>
+                        {DMG_TYPE_LABELS[skill.damage_type]?.label || skill.damage_type}
+                      </span>
+                      {learned?.cooldown_remaining > 0 && (
+                        <span className="text-[13px] text-red-400 ml-auto">CD: {learned.cooldown_remaining}</span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </Metin2Box>
         </div>
 
         {/* Detail panel */}
         <div className="flex-1 p-3">
-          {!selectedSkill ? (
-            <div className="text-gray-600 text-xs text-center mt-10">Selecione uma habilidade</div>
-          ) : (
-            <div className="space-y-3">
-              {/* Skill header */}
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-metin-gold font-medieval text-sm">{selectedSkill.name}</span>
-                  <span className={`text-[10px] ${DMG_TYPE_LABELS[selectedSkill.damage_type]?.color || 'text-gray-400'}`}>
-                    [{DMG_TYPE_LABELS[selectedSkill.damage_type]?.label || selectedSkill.damage_type}]
-                  </span>
-                </div>
-                <p className="text-[11px] text-gray-400 mt-1 leading-relaxed">{selectedSkill.description}</p>
-              </div>
-
-              <div className="divider" />
-
-              {/* Stats */}
-              <div className="grid grid-cols-2 gap-1 text-[11px]">
-                <DetailLine label="Dano Base" value={selectedSkill.base_damage} />
-                <DetailLine label="Custo MP" value={selectedSkill.mp_cost} />
-                <DetailLine label="Cooldown" value={`${selectedSkill.cooldown}t`} />
-                <DetailLine label="Lv. Req." value={selectedSkill.level_required} />
-                <DetailLine label="Escala" value={selectedSkill.scaling_attribute || '—'} />
-                <DetailLine label="Max Level" value={selectedSkill.max_level} />
-              </div>
-
-              {selectedSkill.effect_type && (
-                <div className="text-[11px] text-metin-orange">
-                  Efeito: {selectedSkill.effect_type} ({selectedSkill.effect_chance}%, {selectedSkill.effect_duration}t)
-                </div>
-              )}
-
-              <div className="divider" />
-
-              {/* Progression info */}
-              {selectedLearned ? (
-                <div className="space-y-2">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-gray-500">Progressao</span>
-                    <span className={`font-mono ${STAGE_COLORS[selectedLearned.progress_stage] || 'text-gray-300'}`}>
-                      {selectedLearned.progression_label || `Lv.${selectedLearned.level}`}
+          <Metin2Box variant="a">
+            {!selectedSkill ? (
+              <div className="text-gray-600 text-sm text-center mt-10">Selecione uma habilidade</div>
+            ) : (
+              <div className="space-y-3">
+                {/* Skill header */}
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-metin-gold font-medieval text-sm">{selectedSkill.name}</span>
+                    <span className={`text-[13px] ${DMG_TYPE_LABELS[selectedSkill.damage_type]?.color || 'text-gray-400'}`}>
+                      [{DMG_TYPE_LABELS[selectedSkill.damage_type]?.label || selectedSkill.damage_type}]
                     </span>
                   </div>
-                  <div className="flex justify-between text-xs">
-                    <span className="text-gray-500">Estagio</span>
-                    <span className="text-gray-300">{formatStage(selectedLearned.progress_stage)}</span>
+                  <p className="text-[13px] text-gray-400 mt-1 leading-relaxed">{selectedSkill.description}</p>
+                </div>
+
+                {/* Stats */}
+                <Metin2Box variant="a" title="Dados" style={{ marginBottom: 8 }}>
+                  <div className="grid grid-cols-2 gap-1 text-[13px]">
+                    <DetailLine label="Dano Base" value={selectedSkill.base_damage} />
+                    <DetailLine label="Custo MP" value={selectedSkill.mp_cost} />
+                    <DetailLine label="Cooldown" value={`${selectedSkill.cooldown}t`} />
+                    <DetailLine label="Lv. Req." value={selectedSkill.level_required} />
+                    <DetailLine label="Escala" value={selectedSkill.scaling_attribute || '—'} />
+                    <DetailLine label="Max Level" value={selectedSkill.max_level} />
                   </div>
-                  {selectedLearned.times_used > 0 && (
-                    <div className="flex justify-between text-xs">
-                      <span className="text-gray-500">Usos</span>
-                      <span className="text-gray-400">{selectedLearned.times_used}</span>
+
+                  {selectedSkill.effect_type && (
+                    <div className="text-[13px] text-metin-orange mt-1">
+                      Efeito: {selectedSkill.effect_type} ({selectedSkill.effect_chance}%, {selectedSkill.effect_duration}t)
                     </div>
                   )}
+                </Metin2Box>
 
-                  {/* Action buttons */}
-                  <div className="pt-2 space-y-1.5">
-                    {/* Normal upgrade */}
-                    {selectedLearned.can_normal_upgrade && sp > 0 && (
-                      <button onClick={handleUpgrade} className="metin-btn metin-btn-sm w-full text-xs">
-                        Evoluir (1 Skill Pt)
-                      </button>
-                    )}
-                    {selectedLearned.can_normal_upgrade && sp === 0 && (
-                      <div className="text-[10px] text-gray-600 text-center">Sem skill points</div>
-                    )}
-
-                    {/* Master transition notice */}
-                    {selectedLearned.is_master_transition && (
-                      <div className="text-[10px] text-metin-cyan text-center">
-                        Atingiu Mestre! Use livros para progredir.
+                {/* Progression info */}
+                <Metin2Box variant="a" title="Progressão" style={{ marginBottom: 8 }}>
+                  {selectedLearned ? (
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-500">Progressao</span>
+                        <span className={`font-mono ${STAGE_COLORS[selectedLearned.progress_stage] || 'text-gray-300'}`}>
+                          {selectedLearned.progression_label || `Lv.${selectedLearned.level}`}
+                        </span>
                       </div>
-                    )}
-
-                    {/* Read book */}
-                    {selectedLearned.can_read_book && (
-                      <button onClick={handleReadBook} className="metin-btn metin-btn-sm w-full text-xs !bg-cyan-900/50 !border-cyan-700/50 hover:!bg-cyan-800/50">
-                        Ler Livro ({Math.round(60)}% chance)
-                      </button>
-                    )}
-
-                    {/* Spirit stone */}
-                    {selectedLearned.can_use_spirit_stone && (
-                      <button onClick={handleSpiritStone} className="metin-btn metin-btn-sm w-full text-xs !bg-amber-900/50 !border-amber-700/50 hover:!bg-amber-800/50">
-                        Pedra Espiritual ({Math.round(30)}% · -50 Honra)
-                      </button>
-                    )}
-
-                    {/* Perfect master badge */}
-                    {selectedLearned.progress_stage === 'PERFECT_MASTER' && (
-                      <div className="text-center text-xs text-amber-300 font-medieval">
-                        Perfect Master
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-500">Estagio</span>
+                        <span className="text-gray-300">{formatStage(selectedLearned.progress_stage)}</span>
                       </div>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <div className="text-xs text-gray-600 text-center">Nao aprendida</div>
-                  {character?.level >= selectedSkill.level_required && sp > 0 ? (
-                    <button onClick={handleLearn} className="metin-btn metin-btn-sm w-full text-xs">
-                      Aprender (1 Skill Pt)
-                    </button>
+                      {selectedLearned.times_used > 0 && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-500">Usos</span>
+                          <span className="text-gray-400">{selectedLearned.times_used}</span>
+                        </div>
+                      )}
+
+                      {/* Action buttons */}
+                      <div className="pt-2 space-y-1.5">
+                        {/* Normal upgrade */}
+                        {selectedLearned.can_normal_upgrade && sp > 0 && (
+                          <button onClick={handleUpgrade} className="metin-btn metin-btn-sm w-full text-sm">
+                            Evoluir (1 Skill Pt)
+                          </button>
+                        )}
+                        {selectedLearned.can_normal_upgrade && sp === 0 && (
+                          <div className="text-[13px] text-gray-600 text-center">Sem skill points</div>
+                        )}
+
+                        {/* Master transition notice */}
+                        {selectedLearned.is_master_transition && (
+                          <div className="text-[13px] text-metin-cyan text-center">
+                            Atingiu Mestre! Use livros para progredir.
+                          </div>
+                        )}
+
+                        {/* Read book */}
+                        {selectedLearned.can_read_book && (
+                          <button onClick={handleReadBook} className="metin-btn metin-btn-sm w-full text-sm !bg-cyan-900/50 !border-cyan-700/50 hover:!bg-cyan-800/50">
+                            Ler Livro ({Math.round(60)}% chance)
+                          </button>
+                        )}
+
+                        {/* Spirit stone */}
+                        {selectedLearned.can_use_spirit_stone && (
+                          <button onClick={handleSpiritStone} className="metin-btn metin-btn-sm w-full text-sm !bg-amber-900/50 !border-amber-700/50 hover:!bg-amber-800/50">
+                            Pedra Espiritual ({Math.round(30)}% · -50 Honra)
+                          </button>
+                        )}
+
+                        {/* Perfect master badge */}
+                        {selectedLearned.progress_stage === 'PERFECT_MASTER' && (
+                          <div className="text-center text-sm text-amber-300 font-medieval">
+                            Perfect Master
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   ) : (
-                    <div className="text-[10px] text-gray-600 text-center">
-                      {character?.level < selectedSkill.level_required
-                        ? `Requer nivel ${selectedSkill.level_required}`
-                        : 'Sem skill points'}
+                    <div className="space-y-2">
+                      <div className="text-sm text-gray-600 text-center">Nao aprendida</div>
+                      {character?.level >= selectedSkill.level_required && sp > 0 ? (
+                        <button onClick={handleLearn} className="metin-btn metin-btn-sm w-full text-sm">
+                          Aprender (1 Skill Pt)
+                        </button>
+                      ) : (
+                        <div className="text-[13px] text-gray-600 text-center">
+                          {character?.level < selectedSkill.level_required
+                            ? `Requer nivel ${selectedSkill.level_required}`
+                            : 'Sem skill points'}
+                        </div>
+                      )}
                     </div>
                   )}
-                </div>
-              )}
-            </div>
-          )}
+                </Metin2Box>
+              </div>
+            )}
+          </Metin2Box>
         </div>
       </div>
-    </div>
+    </Metin2Panel>
   );
 }
 
