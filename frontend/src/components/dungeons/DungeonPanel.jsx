@@ -13,6 +13,7 @@ import {
   clearSelectedDungeon,
 } from '../../store/slices/dungeonSlice';
 import { formatNumber } from '../../utils/helpers';
+import { Metin2Panel, Metin2TitleBar } from '../metin2ui';
 
 export default function DungeonPanel() {
   const dispatch = useDispatch();
@@ -99,23 +100,11 @@ export default function DungeonPanel() {
     const results = run.results || {};
 
     return (
-      <div className="metin-panel-gold p-0 w-[460px] select-none">
-        {/* Header */}
-        <div className="px-4 pt-3 pb-2 flex justify-between items-start">
-          <div>
-            <h2 className="text-metin-gold font-medieval text-lg tracking-wide">Masmorras</h2>
-            <span className="text-gray-400 text-xs">{dungeon.name || 'Masmorra'}</span>
-          </div>
-          <button
-            onClick={handleClose}
-            className="text-gray-600 hover:text-metin-gold transition-colors text-sm mt-1"
-            title="Fechar"
-          >
-            ✕
-          </button>
+      <Metin2Panel variant="board" className="select-none" style={{ width: 460 }}>
+        <Metin2TitleBar title="Masmorras" onClose={handleClose} />
+        <div className="px-4 pb-1">
+          <span className="text-gray-400 text-sm">{dungeon.name || 'Masmorra'}</span>
         </div>
-
-        <div className="divider-gold mx-4" />
 
         {/* Rewards summary */}
         {run.completed && viewingRewards && (
@@ -125,35 +114,35 @@ export default function DungeonPanel() {
             </h3>
             <div className="metin-panel p-3 space-y-2">
               <div className="stat-row">
-                <span className="stat-label text-xs">Andares Limpos</span>
-                <span className="stat-value text-xs text-green-400">{results.floors_cleared || 0}</span>
+                <span className="stat-label text-sm">Andares Limpos</span>
+                <span className="stat-value text-sm text-green-400">{results.floors_cleared || 0}</span>
               </div>
               <div className="stat-row">
-                <span className="stat-label text-xs">EXP Total</span>
-                <span className="stat-value text-xs text-blue-400">{formatNumber(results.total_exp || 0)}</span>
+                <span className="stat-label text-sm">EXP Total</span>
+                <span className="stat-value text-sm text-blue-400">{formatNumber(results.total_exp || 0)}</span>
               </div>
               {run.rewards && (
                 <>
                   {run.rewards.gold > 0 && (
                     <div className="stat-row">
-                      <span className="stat-label text-xs">Ouro</span>
-                      <span className="stat-value text-xs text-metin-gold">{formatNumber(run.rewards.gold)}</span>
+                      <span className="stat-label text-sm">Ouro</span>
+                      <span className="stat-value text-sm text-metin-gold">{formatNumber(run.rewards.gold)}</span>
                     </div>
                   )}
                   {run.rewards.exp > 0 && (
                     <div className="stat-row">
-                      <span className="stat-label text-xs">EXP Bonus</span>
-                      <span className="stat-value text-xs text-blue-300">{formatNumber(run.rewards.exp)}</span>
+                      <span className="stat-label text-sm">EXP Bonus</span>
+                      <span className="stat-value text-sm text-blue-300">{formatNumber(run.rewards.exp)}</span>
                     </div>
                   )}
                 </>
               )}
               {results.loot && results.loot.length > 0 && (
                 <div className="mt-2">
-                  <span className="text-gray-500 text-xs">Itens:</span>
+                  <span className="text-gray-500 text-sm">Itens:</span>
                   <div className="mt-1 space-y-1">
                     {results.loot.map((item, idx) => (
-                      <div key={idx} className="text-xs text-gray-300 pl-2">
+                      <div key={idx} className="text-sm text-gray-300 pl-2">
                         • {item.name || item} {item.quantity > 1 && <span className="text-gray-500">x{item.quantity}</span>}
                       </div>
                     ))}
@@ -175,8 +164,8 @@ export default function DungeonPanel() {
             {/* Floor progress */}
             <div>
               <div className="flex justify-between items-center mb-1">
-                <span className="text-gray-400 text-xs">Andar</span>
-                <span className="text-metin-gold text-xs font-mono">
+                <span className="text-gray-400 text-sm">Andar</span>
+                <span className="text-metin-gold text-sm font-mono">
                   {currentFloor} / {totalFloors}
                 </span>
               </div>
@@ -192,38 +181,38 @@ export default function DungeonPanel() {
 
             {/* Floor info */}
             <div className="metin-panel p-3">
-              <h4 className="text-metin-gold font-medieval text-xs tracking-wider uppercase mb-2">
+              <h4 className="text-metin-gold font-medieval text-sm tracking-wider uppercase mb-2">
                 Andar {currentFloor}
               </h4>
               {floor.objective_type && (
                 <div className="stat-row">
-                  <span className="stat-label text-xs">Objetivo</span>
-                  <span className="stat-value text-xs text-gray-300">{floor.objective_type}</span>
+                  <span className="stat-label text-sm">Objetivo</span>
+                  <span className="stat-value text-sm text-gray-300">{floor.objective_type}</span>
                 </div>
               )}
               {floor.mobs && (
                 <div className="stat-row">
-                  <span className="stat-label text-xs">Monstros</span>
-                  <span className="stat-value text-xs text-red-400">{floor.mobs}</span>
+                  <span className="stat-label text-sm">Monstros</span>
+                  <span className="stat-value text-sm text-red-400">{floor.mobs}</span>
                 </div>
               )}
               {floor.boss_mob_id && (
                 <div className="stat-row">
-                  <span className="stat-label text-xs">Boss</span>
-                  <span className="stat-value text-xs text-orange-400">#{floor.boss_mob_id}</span>
+                  <span className="stat-label text-sm">Boss</span>
+                  <span className="stat-value text-sm text-orange-400">#{floor.boss_mob_id}</span>
                 </div>
               )}
             </div>
 
             {/* Run stats */}
             {results.floors_cleared > 0 && (
-              <div className="text-xs text-gray-500 text-center">
+              <div className="text-sm text-gray-500 text-center">
                 {results.floors_cleared} andar(es) limpo(s) · {formatNumber(results.total_exp || 0)} EXP
               </div>
             )}
 
             {error && (
-              <div className="text-xs text-red-400 text-center bg-red-900/20 rounded px-2 py-1">{error}</div>
+              <div className="text-sm text-red-400 text-center bg-red-900/20 rounded px-2 py-1">{error}</div>
             )}
 
             {/* Actions */}
@@ -245,36 +234,24 @@ export default function DungeonPanel() {
             </div>
           </div>
         )}
-      </div>
+      </Metin2Panel>
     );
   }
 
   // Dungeon list / detail view
   return (
-    <div className="metin-panel-gold p-0 w-[460px] select-none">
-      {/* Header */}
-      <div className="px-4 pt-3 pb-2 flex justify-between items-start">
-        <div>
-          <h2 className="text-metin-gold font-medieval text-lg tracking-wide">Masmorras</h2>
-          {selectedDungeon && (
-            <button onClick={handleBack} className="text-gray-500 hover:text-gray-300 text-xs transition-colors">
-              ← Voltar
-            </button>
-          )}
+    <Metin2Panel variant="board" className="select-none" style={{ width: 460 }}>
+      <Metin2TitleBar title="Masmorras" onClose={handleClose} />
+      {selectedDungeon && (
+        <div className="px-4 pb-1">
+          <button onClick={handleBack} className="text-gray-500 hover:text-gray-300 text-sm transition-colors">
+            ← Voltar
+          </button>
         </div>
-        <button
-          onClick={handleClose}
-          className="text-gray-600 hover:text-metin-gold transition-colors text-sm mt-1"
-          title="Fechar"
-        >
-          ✕
-        </button>
-      </div>
-
-      <div className="divider-gold mx-4" />
+      )}
 
       {error && (
-        <div className="mx-4 mt-2 text-xs text-red-400 text-center bg-red-900/20 rounded px-2 py-1">{error}</div>
+        <div className="mx-4 mt-2 text-sm text-red-400 text-center bg-red-900/20 rounded px-2 py-1">{error}</div>
       )}
 
       {/* Dungeon detail */}
@@ -282,14 +259,14 @@ export default function DungeonPanel() {
         <div className="px-4 py-3 space-y-3">
           <div>
             <h3 className="text-metin-gold font-medieval text-sm">{selectedDungeon.name}</h3>
-            <p className="text-gray-400 text-xs mt-1 leading-relaxed">{selectedDungeon.description}</p>
+            <p className="text-gray-400 text-sm mt-1 leading-relaxed">{selectedDungeon.description}</p>
           </div>
 
           <div className="metin-panel p-3 space-y-1">
             <div className="stat-row">
-              <span className="stat-label text-xs">Nivel Necessario</span>
+              <span className="stat-label text-sm">Nivel Necessario</span>
               <span
-                className={`stat-value text-xs ${
+                className={`stat-value text-sm ${
                   character.level >= selectedDungeon.level_required ? 'text-green-400' : 'text-red-400'
                 }`}
               >
@@ -297,13 +274,13 @@ export default function DungeonPanel() {
               </span>
             </div>
             <div className="stat-row">
-              <span className="stat-label text-xs">Total de Andares</span>
-              <span className="stat-value text-xs text-gray-300">{selectedDungeon.total_floors}</span>
+              <span className="stat-label text-sm">Total de Andares</span>
+              <span className="stat-value text-sm text-gray-300">{selectedDungeon.total_floors}</span>
             </div>
             <div className="stat-row">
-              <span className="stat-label text-xs">Custo de Entrada</span>
+              <span className="stat-label text-sm">Custo de Entrada</span>
               <span
-                className={`stat-value text-xs ${
+                className={`stat-value text-sm ${
                   character.gold >= selectedDungeon.entry_cost_gold ? 'text-yellow-400' : 'text-red-400'
                 }`}
               >
@@ -315,12 +292,12 @@ export default function DungeonPanel() {
           {/* Floors preview */}
           {selectedDungeon.floors && selectedDungeon.floors.length > 0 && (
             <div>
-              <h4 className="text-metin-gold font-medieval text-xs tracking-wider uppercase mb-2">Andares</h4>
+              <h4 className="text-metin-gold font-medieval text-sm tracking-wider uppercase mb-2">Andares</h4>
               <div className="space-y-1 max-h-[25vh] overflow-y-auto pr-1 scrollbar-thin">
                 {selectedDungeon.floors.map((f) => (
                   <div key={f.floor_number} className="metin-panel px-3 py-2 flex items-center justify-between">
-                    <span className="text-gray-400 text-xs font-mono">#{f.floor_number}</span>
-                    <div className="flex items-center gap-3 text-xs">
+                    <span className="text-gray-400 text-sm font-mono">#{f.floor_number}</span>
+                    <div className="flex items-center gap-3 text-sm">
                       {f.mobs && <span className="text-gray-500">{f.mobs} mobs</span>}
                       {f.boss_mob_id && <span className="text-orange-400">Boss</span>}
                       {f.objective_type && <span className="text-gray-600">{f.objective_type}</span>}
@@ -345,11 +322,11 @@ export default function DungeonPanel() {
         /* Dungeon list */
         <div className="px-4 py-2">
           {loading && list.length === 0 && (
-            <div className="text-gray-500 text-xs text-center py-6">Carregando masmorras...</div>
+            <div className="text-gray-500 text-sm text-center py-6">Carregando masmorras...</div>
           )}
 
           {!loading && list.length === 0 && (
-            <div className="text-gray-500 text-xs text-center py-6">Nenhuma masmorra disponivel.</div>
+            <div className="text-gray-500 text-sm text-center py-6">Nenhuma masmorra disponivel.</div>
           )}
 
           <div className="space-y-1 max-h-[50vh] overflow-y-auto pr-1 scrollbar-thin">
@@ -367,17 +344,17 @@ export default function DungeonPanel() {
                         <span className="text-gray-200 text-sm group-hover:text-metin-gold transition-colors truncate">
                           {dungeon.name}
                         </span>
-                        <span className={`text-[10px] ${levelOk ? 'text-gray-600' : 'text-red-500'}`}>
+                        <span className={`text-[13px] ${levelOk ? 'text-gray-600' : 'text-red-500'}`}>
                           Lv.{dungeon.level_required}
                         </span>
                       </div>
                       {dungeon.description && (
-                        <p className="text-gray-600 text-[10px] mt-0.5 truncate">{dungeon.description}</p>
+                        <p className="text-gray-600 text-[13px] mt-0.5 truncate">{dungeon.description}</p>
                       )}
                     </div>
                     <div className="flex flex-col items-end ml-3 shrink-0">
-                      <span className="text-gray-500 text-[10px]">{dungeon.total_floors} andares</span>
-                      <span className="text-yellow-400 text-[10px]">{formatNumber(dungeon.entry_cost_gold)} ouro</span>
+                      <span className="text-gray-500 text-[13px]">{dungeon.total_floors} andares</span>
+                      <span className="text-yellow-400 text-[13px]">{formatNumber(dungeon.entry_cost_gold)} ouro</span>
                     </div>
                   </div>
                 </button>
@@ -386,6 +363,6 @@ export default function DungeonPanel() {
           </div>
         </div>
       )}
-    </div>
+    </Metin2Panel>
   );
 }

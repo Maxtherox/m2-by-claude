@@ -1,67 +1,102 @@
 import React from 'react';
 import { useSelector } from 'react-redux';
-import ProgressBar from '../common/ProgressBar';
-import { formatNumber, getKingdomColor, calcExpPercent } from '../../utils/helpers';
+import { Metin2GaugeBar, Metin2EnergyGauge } from '../metin2ui';
+import { formatNumber, getKingdomColor } from '../../utils/helpers';
+import { GiTwoCoins } from 'react-icons/gi';
 
 export default function HUD() {
   const character = useSelector((state) => state.character.data);
   if (!character) return null;
 
-  const hp = character.currentHp ?? character.hp ?? 0;
-  const maxHp = character.maxHp ?? character.stats?.maxHp ?? 100;
-  const mp = character.currentMp ?? character.mp ?? 0;
-  const maxMp = character.maxMp ?? character.stats?.maxMp ?? 50;
-  const stamina = character.currentStamina ?? character.stamina ?? 0;
-  const maxStamina = character.maxStamina ?? character.stats?.maxStamina ?? 100;
-  const exp = character.experience ?? character.exp ?? 0;
-  const expReq = character.experienceRequired ?? character.expRequired ?? 100;
+  const ds         = character.derived_stats || {};
+  const hp         = character.hp ?? 0;
+  const maxHp      = ds.max_hp ?? character.max_hp ?? 100;
+  const mp         = character.mp ?? 0;
+  const maxMp      = ds.max_mp ?? character.max_mp ?? 50;
+  const stamina    = character.stamina ?? 0;
+  const maxStamina = ds.max_stamina ?? character.max_stamina ?? 100;
+  const exp        = character.exp ?? 0;
+  const expReq     = ds.exp_for_next_level ?? character.max_exp ?? 100;
+  const kingdom    = character.kingdom_name ?? character.kingdom ?? '';
+  const className  = character.class_name ?? character.className ?? character.class ?? '';
 
   return (
-    <div className="bg-metin-panel border-b border-metin-border px-4 py-2 flex items-center gap-4 z-30 relative"
-      style={{ backgroundImage: 'linear-gradient(180deg, rgba(255,255,255,0.02) 0%, transparent 100%)' }}>
+    <div
+      className="m2-taskbar flex items-center gap-3 px-3 z-30 relative"
+      style={{ height: 52, minHeight: 52 }}
+    >
       {/* Character info */}
-      <div className="flex items-center gap-2 min-w-[150px]">
-        <div className={`w-8 h-8 rounded-sm border border-metin-border-gold flex items-center justify-center text-sm font-bold bg-metin-dark ${getKingdomColor(character.kingdom)}`}>
+      <div className="flex items-center gap-2 min-w-[120px]">
+        <div
+          className={`w-8 h-8 flex items-center justify-center text-sm font-bold ${getKingdomColor(kingdom)}`}
+          style={{
+            backgroundImage: 'url(/ui/pattern/board_base.png)',
+            backgroundRepeat: 'repeat',
+            border: '1px solid #8b7332',
+          }}
+        >
           {character.level || 1}
         </div>
         <div>
-          <div className="text-metin-gold font-medieval text-sm leading-tight" style={{ textShadow: '0 0 5px rgba(212,168,50,0.3)' }}>
+          <div className="m2-text-name text-sm leading-tight">
             {character.name}
           </div>
-          <div className="text-gray-500 text-xs font-medieval">
-            {character.className || character.class}
+          <div className="text-gray-500" style={{ fontSize: 13 }}>
+            {className}
           </div>
         </div>
       </div>
 
-      {/* Bars */}
-      <div className="flex-1 space-y-1 max-w-md">
-        <ProgressBar type="hp" current={hp} max={maxHp} showText />
-        <ProgressBar type="mp" current={mp} max={maxMp} showText />
-        <div className="flex gap-2">
-          <div className="flex-1">
-            <ProgressBar type="stamina" current={stamina} max={maxStamina} small />
-          </div>
-          <div className="flex-1">
-            <ProgressBar type="exp" current={exp} max={expReq} small />
-          </div>
+      {/* HP / MP gauges using real sprites */}
+      <div className="flex-1 space-y-1 max-w-sm">
+        <div className="flex items-center gap-1">
+          <span style={{ fontSize: 14, color: '#c83030', width: 16, textAlign: 'center', fontWeight: 'bold' }}>HP</span>
+          <Metin2GaugeBar type="hp" current={hp} max={maxHp} showText />
+        </div>
+        <div className="flex items-center gap-1">
+          <span style={{ fontSize: 14, color: '#3060c8', width: 16, textAlign: 'center', fontWeight: 'bold' }}>MP</span>
+          <Metin2GaugeBar type="mp" current={mp} max={maxMp} showText />
+        </div>
+        <div className="flex items-center gap-1">
+          <span style={{ fontSize: 14, color: '#c8a030', width: 16, textAlign: 'center', fontWeight: 'bold' }}>ST</span>
+          <Metin2GaugeBar type="st" current={stamina} max={maxStamina} />
         </div>
       </div>
+
+      {/* EXP bar (uses fallback gauge_slot style) */}
+      <div style={{ width: 120 }}>
+        <div className="flex items-center gap-1">
+          <span style={{ fontSize: 14, color: '#e080a0', width: 20, textAlign: 'center' }}>EXP</span>
+          <Metin2GaugeBar type="exp" current={exp} max={expReq} showText />
+        </div>
+      </div>
+
+      {/* Energy gauge (semicircular meter) */}
+      <Metin2EnergyGauge current={stamina} max={maxStamina} />
 
       {/* Gold */}
-      <div className="flex items-center gap-1 min-w-[100px] justify-end">
-        <span className="text-yellow-500 text-sm">$</span>
-        <span className="text-metin-gold font-medieval text-sm">
+      <div className="flex items-center gap-1 min-w-[80px] justify-end">
+        <GiTwoCoins className="text-yellow-500" style={{ fontSize: 14 }} />
+        <span className="m2-text-gold" style={{ fontSize: 14 }}>
           {formatNumber(character.gold ?? 0)}
         </span>
       </div>
 
       {/* Kingdom badge */}
-      <div className={`px-2 py-1 rounded-sm border text-xs font-medieval
-        ${character.kingdom === 'shinsoo' ? 'border-kingdom-shinsoo/50 text-kingdom-shinsoo bg-kingdom-shinsoo/10' :
-          character.kingdom === 'chunjo' ? 'border-kingdom-chunjo/50 text-kingdom-chunjo bg-kingdom-chunjo/10' :
-          'border-kingdom-jinno/50 text-kingdom-jinno bg-kingdom-jinno/10'}`}>
-        {character.kingdom?.charAt(0).toUpperCase() + character.kingdom?.slice(1)}
+      <div
+        className={`px-2 py-1
+          ${kingdom.toLowerCase() === 'shinsoo' ? 'text-kingdom-shinsoo' :
+            kingdom.toLowerCase() === 'chunjo'  ? 'text-kingdom-chunjo' :
+            'text-kingdom-jinno'}`}
+        style={{
+          backgroundImage: 'url(/ui/pattern/board_base.png)',
+          backgroundRepeat: 'repeat',
+          border: '1px solid #5a4a1a',
+          fontSize: 13,
+          fontWeight: 'bold',
+        }}
+      >
+        {kingdom ? kingdom.charAt(0).toUpperCase() + kingdom.slice(1) : '—'}
       </div>
     </div>
   );

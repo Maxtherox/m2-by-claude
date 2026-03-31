@@ -14,7 +14,7 @@ module.exports = {
 
     const mobs = await db('mobs')
       .where({ area_id: areaId })
-      .select('id', 'name', 'level', 'hp', 'type', 'behavior', 'exp_reward', 'gold_min', 'gold_max');
+      .select('id', 'name', 'level', 'hp', 'attack', 'defense', 'type', 'behavior', 'exp_reward', 'gold_min', 'gold_max');
 
     const npcs = await db('npcs')
       .where({ area_id: areaId })

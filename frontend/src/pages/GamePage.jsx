@@ -7,7 +7,6 @@ import { fetchHotbar } from '../store/slices/hotbarSlice';
 import { removeNotification } from '../store/slices/uiSlice';
 import HUD from '../components/hud/HUD';
 import ActionBar from '../components/hud/ActionBar';
-import HotbarBar from '../components/hud/HotbarBar';
 import StatusEffectsDisplay from '../components/hud/StatusEffectsDisplay';
 import StatusPanel from '../components/character/StatusPanel';
 import InventoryPanel from '../components/inventory/InventoryPanel';
@@ -126,9 +125,7 @@ export default function GamePage() {
         {combatResult && <CombatResultModal />}
       </div>
 
-      {/* Hotbar */}
-      <HotbarBar />
-      {/* Bottom Action Bar */}
+      {/* Unified Taskbar */}
       <ActionBar />
 
       {/* Notifications */}

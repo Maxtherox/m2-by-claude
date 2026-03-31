@@ -2,6 +2,7 @@ import React from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { resetCombat } from '../../store/slices/combatSlice';
 import { closePanel } from '../../store/slices/uiSlice';
+import { Metin2Panel } from '../metin2ui';
 
 export default function CombatResultModal() {
   const dispatch = useDispatch();
@@ -12,7 +13,7 @@ export default function CombatResultModal() {
 
   return (
     <div className="absolute inset-0 flex items-center justify-center z-30 bg-black/60">
-      <div className={`metin-panel-gold p-6 w-[350px] animate-slide-in border-2 ${isVictory ? 'border-metin-green' : 'border-metin-red'}`}>
+      <Metin2Panel variant="gold" className={`p-6 animate-slide-in border-2 ${isVictory ? 'border-metin-green' : 'border-metin-red'}`} style={{ width: 350 }}>
         <h2 className={`text-2xl font-medieval text-center mb-4 ${isVictory ? 'text-metin-green' : 'text-metin-red'}`}
           style={{ textShadow: `0 0 15px ${isVictory ? 'rgba(48,168,48,0.5)' : 'rgba(200,48,48,0.5)'}` }}>
           {isVictory ? 'Vitoria!' : 'Derrota!'}
@@ -36,7 +37,7 @@ export default function CombatResultModal() {
             {result.drops?.length > 0 && (
               <>
                 <div className="divider" />
-                <div className="text-xs text-gray-400 font-medieval">Itens obtidos:</div>
+                <div className="text-sm text-gray-400 font-medieval">Itens obtidos:</div>
                 {result.drops.map((d, i) => (
                   <div key={i} className="text-sm text-metin-cyan">{d.name} x{d.quantity}</div>
                 ))}
@@ -55,7 +56,7 @@ export default function CombatResultModal() {
           className="metin-btn-gold w-full">
           Continuar
         </button>
-      </div>
+      </Metin2Panel>
     </div>
   );
 }

@@ -15,44 +15,44 @@ export const fetchInventory = createAsyncThunk(
 
 export const equipItem = createAsyncThunk(
   'inventory/equip',
-  async ({ charId, itemId }, { rejectWithValue }) => {
+  async ({ charId, invId }, { rejectWithValue }) => {
     try {
-      return await api.equipItem(charId, itemId);
+      return await api.equipItem(charId, invId);
     } catch (err) {
-      return rejectWithValue(err.response?.data?.message || 'Erro ao equipar');
+      return rejectWithValue(err.response?.data?.error || 'Erro ao equipar');
     }
   }
 );
 
 export const unequipItem = createAsyncThunk(
   'inventory/unequip',
-  async ({ charId, slot }, { rejectWithValue }) => {
+  async ({ charId, invId }, { rejectWithValue }) => {
     try {
-      return await api.unequipItem(charId, slot);
+      return await api.unequipItem(charId, invId);
     } catch (err) {
-      return rejectWithValue(err.response?.data?.message || 'Erro ao desequipar');
+      return rejectWithValue(err.response?.data?.error || 'Erro ao desequipar');
     }
   }
 );
 
 export const sellItem = createAsyncThunk(
   'inventory/sell',
-  async ({ charId, itemId, quantity }, { rejectWithValue }) => {
+  async ({ charId, invId, quantity }, { rejectWithValue }) => {
     try {
-      return await api.sellItem(charId, itemId, quantity);
+      return await api.sellItem(charId, invId, quantity);
     } catch (err) {
-      return rejectWithValue(err.response?.data?.message || 'Erro ao vender');
+      return rejectWithValue(err.response?.data?.error || 'Erro ao vender');
     }
   }
 );
 
 export const useItem = createAsyncThunk(
   'inventory/use',
-  async ({ charId, itemId }, { rejectWithValue }) => {
+  async ({ charId, invId }, { rejectWithValue }) => {
     try {
-      return await api.useItem(charId, itemId);
+      return await api.useItem(charId, invId);
     } catch (err) {
-      return rejectWithValue(err.response?.data?.message || 'Erro ao usar item');
+      return rejectWithValue(err.response?.data?.error || 'Erro ao usar item');
     }
   }
 );

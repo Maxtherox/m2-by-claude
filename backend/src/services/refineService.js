@@ -2,6 +2,14 @@ const db = require('../database/connection');
 const formulas = require('../utils/formulas');
 const constants = require('../utils/constants');
 
+// Chance de QUEBRAR o item ao falhar (sem pergaminho de proteção)
+// Escala com o nível de refinamento atual
+function calcBreakChance(currentRefinement) {
+  // +0~+5: baixo risco, +6+: punitivo
+  const chances = [0, 1, 2, 3, 4, 5, 15, 25, 40];
+  return chances[currentRefinement] ?? 50;
+}
+
 module.exports = {
   async refineItem(charId, invId) {
     const invItem = await db('character_inventory')
@@ -22,7 +30,7 @@ module.exports = {
       throw new Error('Item já está no refinamento máximo');
     }
 
-    // Find refine scroll (item_id 93 = normal, 94 = blessed)
+    // Buscar pergaminhos (OPCIONAIS)
     const normalScroll = await db('character_inventory')
       .where({ character_id: charId, item_id: 93, equipped: false })
       .first();
@@ -31,40 +39,40 @@ module.exports = {
       .where({ character_id: charId, item_id: 94, equipped: false })
       .first();
 
-    if (!normalScroll && !blessedScroll) {
-      throw new Error('Pergaminho de refinamento necessário (item 93 ou 94)');
-    }
-
-    const useBlessed = !!blessedScroll;
-    const scrollToUse = useBlessed ? blessedScroll : normalScroll;
-
-    // Check for protection scroll (item_id 96) - prevents level loss on failure
+    // Proteção de refino (item 96) — previne QUEBRA do item
     const protectionScroll = await db('character_inventory')
       .where({ character_id: charId, item_id: 96, equipped: false })
       .first();
 
-    const cost = formulas.calcRefineCost(invItem.refinement, invItem.level_required);
+    // Pergaminho é opcional — determinar qual usar (se houver)
+    const useBlessed = !!blessedScroll;
+    const hasScroll = !!(normalScroll || blessedScroll);
+    const scrollToUse = useBlessed ? blessedScroll : normalScroll;
 
+    // Custo em ouro
+    const cost = formulas.calcRefineCost(invItem.refinement, invItem.level_required);
     const character = await db('characters').where({ id: charId }).first();
     if (character.gold < cost) {
       throw new Error('Ouro insuficiente para refinamento');
     }
 
-    // Deduct gold
+    // Deduzir ouro
     await db('characters')
       .where({ id: charId })
       .update({ gold: character.gold - cost });
 
-    // Consume scroll
-    if (scrollToUse.quantity <= 1) {
-      await db('character_inventory').where({ id: scrollToUse.id }).delete();
-    } else {
-      await db('character_inventory')
-        .where({ id: scrollToUse.id })
-        .update({ quantity: scrollToUse.quantity - 1 });
+    // Consumir pergaminho (se tiver)
+    if (scrollToUse) {
+      if (scrollToUse.quantity <= 1) {
+        await db('character_inventory').where({ id: scrollToUse.id }).delete();
+      } else {
+        await db('character_inventory')
+          .where({ id: scrollToUse.id })
+          .update({ quantity: scrollToUse.quantity - 1 });
+      }
     }
 
-    // Consume protection scroll if present
+    // Consumir proteção (se tiver)
     let hasProtection = false;
     if (protectionScroll) {
       hasProtection = true;
@@ -77,7 +85,7 @@ module.exports = {
       }
     }
 
-    // Calculate chance
+    // Calcular chance de sucesso
     let chance = formulas.calcRefineChance(invItem.refinement);
     if (useBlessed) {
       chance = Math.min(100, chance + 15);
@@ -97,40 +105,112 @@ module.exports = {
         refinement: newRefinement,
         chance,
         blessed: useBlessed,
+        hadScroll: hasScroll,
         protected: hasProtection,
+        broken: false,
         cost,
-        message: `Refinamento +${newRefinement} com sucesso!`
+        message: `Refinamento +${newRefinement} com sucesso!`,
       };
-    } else {
-      // Failure: lose a level unless protected
-      if (!hasProtection && invItem.refinement > 0) {
-        const newRefinement = invItem.refinement - 1;
-        await db('character_inventory')
-          .where({ id: invId })
-          .update({ refinement: newRefinement });
+    }
 
+    // === FALHA ===
+    const breakChance = calcBreakChance(invItem.refinement);
+
+    // Com pergaminho: item nunca quebra, apenas perde 1 nível
+    // Sem pergaminho: chance de quebrar (destruir item)
+    // Proteção: previne a quebra mesmo sem pergaminho
+
+    if (hasScroll) {
+      // Pergaminho protege contra quebra, mas perde 1 nível
+      if (hasProtection) {
+        // Proteção + Pergaminho: mantém nível
         return {
           success: false,
-          refinement: newRefinement,
+          refinement: invItem.refinement,
           chance,
           blessed: useBlessed,
-          protected: false,
+          hadScroll: true,
+          protected: true,
+          broken: false,
           cost,
-          message: `Falha! Refinamento caiu para +${newRefinement}`
+          message: 'Falha! Proteção consumida, refinamento mantido.',
         };
       }
 
+      // Só pergaminho: perde 1 nível mas não quebra
+      const newRefinement = Math.max(0, invItem.refinement - 1);
+      await db('character_inventory')
+        .where({ id: invId })
+        .update({ refinement: newRefinement });
+
+      return {
+        success: false,
+        refinement: newRefinement,
+        chance,
+        blessed: useBlessed,
+        hadScroll: true,
+        protected: false,
+        broken: false,
+        cost,
+        message: `Falha! Refinamento caiu para +${newRefinement}.`,
+      };
+    }
+
+    // SEM pergaminho — risco de quebra
+    const breakRoll = Math.random() * 100;
+    const itemBreaks = breakRoll < breakChance;
+
+    if (itemBreaks && !hasProtection) {
+      // Item QUEBRA (é destruído)
+      await db('character_inventory').where({ id: invId }).delete();
+
+      return {
+        success: false,
+        refinement: 0,
+        chance,
+        blessed: false,
+        hadScroll: false,
+        protected: false,
+        broken: true,
+        breakChance,
+        cost,
+        message: `Falha! O item ${invItem.name} +${invItem.refinement} QUEBROU e foi destruído!`,
+      };
+    }
+
+    if (hasProtection) {
+      // Proteção salvou da quebra, mantém nível
       return {
         success: false,
         refinement: invItem.refinement,
         chance,
-        blessed: useBlessed,
-        protected: hasProtection,
+        blessed: false,
+        hadScroll: false,
+        protected: true,
+        broken: false,
+        breakChance,
         cost,
-        message: hasProtection
-          ? 'Falha! Proteção consumida, refinamento mantido.'
-          : 'Falha! Refinamento mantido (já era +0).'
+        message: 'Falha! Proteção evitou a quebra, refinamento mantido.',
       };
     }
-  }
+
+    // Falhou mas não quebrou (sorte) — perde 1 nível
+    const newRefinement = Math.max(0, invItem.refinement - 1);
+    await db('character_inventory')
+      .where({ id: invId })
+      .update({ refinement: newRefinement });
+
+    return {
+      success: false,
+      refinement: newRefinement,
+      chance,
+      blessed: false,
+      hadScroll: false,
+      protected: false,
+      broken: false,
+      breakChance,
+      cost,
+      message: `Falha! Refinamento caiu para +${newRefinement}. (Chance de quebra era ${breakChance}%)`,
+    };
+  },
 };

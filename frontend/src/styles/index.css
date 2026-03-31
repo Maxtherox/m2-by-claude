@@ -8,162 +8,329 @@
     scrollbar-color: #3a3a5c #1a1a2e;
   }
   *::-webkit-scrollbar {
-    width: 6px;
+    width: 8px;
   }
   *::-webkit-scrollbar-track {
-    background: #1a1a2e;
+    background-image: url('/ui/pattern/scrollbar_middle.png');
+    background-repeat: repeat-y;
+    background-size: 8px auto;
   }
   *::-webkit-scrollbar-thumb {
-    background: #3a3a5c;
-    border-radius: 3px;
+    background-image: url('/ui/pattern/scrollbar_top.png');
+    background-repeat: repeat-y;
+    background-size: 8px auto;
+    border-radius: 0;
   }
   *::-webkit-scrollbar-thumb:hover {
-    background: #8b7332;
+    filter: brightness(1.3);
+  }
+
+  body {
+    background: #0a0a0f;
+    color: #ccc;
+    font-family: Arial, Tahoma, 'Segoe UI', sans-serif;
+    font-size: 14px;
   }
 }
 
 @layer components {
+  /* ── Metin2 Panel (CSS fallback) ── */
   .metin-panel {
-    @apply bg-metin-panel border border-metin-border rounded-sm shadow-metin;
-    background-image: linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.02) 0%,
-      transparent 50%,
-      rgba(0, 0, 0, 0.1) 100%
-    );
+    background-image: url('/ui/pattern/board_base.png');
+    background-repeat: repeat;
+    border: 2px solid #5a4a1a;
   }
 
   .metin-panel-gold {
-    @apply bg-metin-panel border-2 border-metin-border-gold rounded-sm shadow-metin-gold;
-    background-image: linear-gradient(
-      180deg,
-      rgba(212, 168, 50, 0.05) 0%,
-      transparent 50%,
-      rgba(0, 0, 0, 0.15) 100%
-    );
+    background-image: url('/ui/pattern/thinboardgold/thinboard_bg_gold.png');
+    background-repeat: repeat;
+    border: 2px solid #8b7332;
   }
 
+  /* ── Metin2 Panel Component ── */
+  .m2-panel {
+    image-rendering: pixelated;
+  }
+
+  .m2-panel-content {
+    min-height: 0;
+  }
+
+  /* ── Metin2 Title Bar ── */
+  .m2-titlebar {
+    user-select: none;
+    z-index: 1;
+  }
+
+  /* ── Metin2 Button ── */
+  .m2-btn {
+    user-select: none;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+  }
+
+  .m2-btn:hover:not(:disabled) {
+    filter: brightness(1.15);
+  }
+
+  .m2-btn:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+
+  /* ── Legacy button classes ── */
   .metin-btn {
-    @apply px-4 py-2 bg-metin-panel-light border border-metin-border rounded-sm
-    font-medieval text-metin-gold hover:bg-metin-border hover:border-metin-border-gold
-    active:bg-metin-dark transition-all duration-150 cursor-pointer select-none;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    background-image: url('/ui/pattern/largeb_button_01.png');
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    border: none;
+    color: #c8b06a;
+    font-family: Arial, Tahoma, sans-serif;
+    font-size: 14px;
+    font-weight: bold;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+    padding: 6px 20px;
+    cursor: pointer;
+    user-select: none;
+    transition: filter 0.15s;
+  }
+
+  .metin-btn:hover {
+    background-image: url('/ui/pattern/largeb_button_02.png');
+    filter: brightness(1.15);
+  }
+
+  .metin-btn:active {
+    background-image: url('/ui/pattern/largeb_button_03.png');
+    transform: translateY(1px);
   }
 
   .metin-btn-gold {
-    @apply px-4 py-2 bg-gradient-to-b from-metin-gold-dark to-metin-gold border border-metin-gold-light
-    rounded-sm font-medieval text-metin-dark font-bold hover:from-metin-gold hover:to-metin-gold-light
-    active:from-metin-gold-dark active:to-metin-gold-dark transition-all duration-150 cursor-pointer select-none;
-    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.2);
+    background-image: url('/ui/pattern/largeb_button_02.png');
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    border: none;
+    color: #ffd060;
+    font-family: Arial, Tahoma, sans-serif;
+    font-size: 14px;
+    font-weight: bold;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+    padding: 6px 20px;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .metin-btn-gold:hover {
+    filter: brightness(1.2);
   }
 
   .metin-btn-danger {
-    @apply px-4 py-2 bg-metin-red-dark border border-metin-red rounded-sm
-    font-medieval text-red-200 hover:bg-metin-red active:bg-metin-red-dark
-    transition-all duration-150 cursor-pointer select-none;
+    background-image: url('/ui/pattern/largeb_button_01.png');
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    border: none;
+    color: #ff6666;
+    font-family: Arial, Tahoma, sans-serif;
+    font-size: 14px;
+    font-weight: bold;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+    padding: 6px 20px;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .metin-btn-danger:hover {
+    background-image: url('/ui/pattern/largeb_button_03.png');
+    filter: brightness(1.15);
   }
 
   .metin-btn-sm {
-    @apply px-2 py-1 text-sm;
+    padding: 4px 12px;
+    font-size: 13px;
   }
 
   .metin-input {
-    @apply w-full px-3 py-2 bg-metin-dark border border-metin-border rounded-sm
-    text-gray-200 font-medieval placeholder-gray-600
-    focus:outline-none focus:border-metin-border-gold focus:ring-1 focus:ring-metin-gold-dark
-    transition-colors duration-150;
+    background-image: url('/ui/pattern/board_base.png');
+    background-repeat: repeat;
+    border: 1px solid #5a4a1a;
+    color: #d4c8a0;
+    font-family: Arial, Tahoma, sans-serif;
+    font-size: 14px;
+    padding: 8px 12px;
+    outline: none;
+    width: 100%;
   }
 
-  .hp-bar {
-    @apply h-4 rounded-sm overflow-hidden bg-metin-dark border border-red-900;
-  }
-  .hp-bar .fill {
-    @apply h-full bg-gradient-to-r from-metin-red-dark to-metin-red transition-all duration-300;
+  .metin-input:focus {
+    border-color: #8b7332;
+    box-shadow: 0 0 4px rgba(212,168,50,0.2);
   }
 
-  .mp-bar {
-    @apply h-4 rounded-sm overflow-hidden bg-metin-dark border border-blue-900;
-  }
-  .mp-bar .fill {
-    @apply h-full bg-gradient-to-r from-metin-blue-dark to-metin-blue transition-all duration-300;
+  .metin-input::placeholder {
+    color: #5a5a4a;
   }
 
-  .stamina-bar {
-    @apply h-3 rounded-sm overflow-hidden bg-metin-dark border border-yellow-900;
-  }
-  .stamina-bar .fill {
-    @apply h-full bg-gradient-to-r from-yellow-800 to-metin-stamina transition-all duration-300;
-  }
-
-  .exp-bar {
-    @apply h-3 rounded-sm overflow-hidden bg-metin-dark border border-green-900;
-  }
-  .exp-bar .fill {
-    @apply h-full bg-gradient-to-r from-metin-green-dark to-metin-green transition-all duration-300;
-  }
-
+  /* ── Item Slots ── */
   .item-slot {
-    @apply w-12 h-12 bg-metin-dark border border-metin-border rounded-sm
-    flex items-center justify-center cursor-pointer hover:border-metin-border-gold
-    transition-colors duration-150 relative select-none;
+    @apply w-12 h-12 flex items-center justify-center cursor-pointer relative select-none;
+    background-image: url('/ui/pattern/board_base.png');
+    background-repeat: repeat;
+    border: 1px solid #3a3a2e;
+    transition: border-color 0.15s;
   }
 
-  .item-slot.rarity-common {
-    @apply border-rarity-common/50;
-  }
-  .item-slot.rarity-uncommon {
-    @apply border-rarity-uncommon/70;
-  }
-  .item-slot.rarity-rare {
-    @apply border-rarity-rare/70;
-  }
-  .item-slot.rarity-epic {
-    @apply border-rarity-epic/70 shadow-[0_0_6px_rgba(160,48,240,0.3)];
-  }
-  .item-slot.rarity-legendary {
-    @apply border-rarity-legendary/80 shadow-[0_0_8px_rgba(240,160,48,0.4)];
-  }
-  .item-slot.rarity-mythic {
-    @apply border-rarity-mythic/80 shadow-[0_0_10px_rgba(240,48,48,0.4)];
+  .item-slot:hover {
+    border-color: #8b7332;
   }
 
+  .item-slot.rarity-common { border-color: #b0b0b0aa; }
+  .item-slot.rarity-uncommon { border-color: #30c830bb; }
+  .item-slot.rarity-rare { border-color: #3080f0bb; }
+  .item-slot.rarity-epic { border-color: #a030f0bb; box-shadow: 0 0 6px rgba(160,48,240,0.3); }
+  .item-slot.rarity-legendary { border-color: #f0a030cc; box-shadow: 0 0 8px rgba(240,160,48,0.4); }
+  .item-slot.rarity-mythic { border-color: #f03030cc; box-shadow: 0 0 10px rgba(240,48,48,0.4); }
+
+  /* ── Tooltip ── */
   .tooltip {
-    @apply absolute z-50 metin-panel-gold p-3 min-w-[220px] max-w-[300px] text-sm pointer-events-none;
+    @apply absolute z-50 p-3 min-w-[220px] max-w-[300px] text-sm pointer-events-none;
+    background-image: url('/ui/pattern/thinboardgold/thinboard_bg_gold.png');
+    background-repeat: repeat;
+    border: 2px solid #8b7332;
     animation: fadeIn 0.15s ease-out;
   }
 
+  /* ── Typography ── */
   .panel-title {
-    @apply text-metin-gold font-medieval text-lg border-b border-metin-border-gold pb-2 mb-3;
-    text-shadow: 0 0 10px rgba(212, 168, 50, 0.3);
+    color: #c8b06a;
+    font-size: 16px;
+    font-weight: bold;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+    letter-spacing: 0.5px;
   }
 
   .stat-row {
-    @apply flex justify-between items-center py-0.5 text-sm;
+    @apply flex justify-between items-center py-1;
+    font-size: 14px;
   }
 
   .stat-label {
-    @apply text-gray-400 font-medieval;
+    color: #999;
   }
 
   .stat-value {
-    @apply text-gray-200 font-medieval;
+    color: #d4c8a0;
   }
 
   .divider {
-    @apply border-t border-metin-border my-2;
+    background-image: url('/ui/pattern/horizontalbar_center.png');
+    background-repeat: repeat-x;
+    background-size: auto 8px;
+    background-position: center;
+    height: 8px;
+    margin: 4px 0;
+    border: none;
   }
 
   .divider-gold {
-    @apply border-t border-metin-border-gold my-2;
+    background-image: url('/ui/pattern/seperator.png');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+    height: 12px;
+    margin: 4px 0;
+    border: none;
   }
+
+  /* ── Taskbar ── */
+  .m2-taskbar {
+    background-image: url('/ui/pattern/taskbar_base.png');
+    background-repeat: repeat-x;
+    background-size: auto 100%;
+  }
+
+  /* ── Chat bar ── */
+  .m2-chatbar {
+    display: grid;
+    grid-template-columns: 64px 1fr 64px;
+    height: 32px;
+  }
+  .m2-chatbar-left { background: url('/ui/pattern/chat_bar_left.png') no-repeat; background-size: cover; }
+  .m2-chatbar-mid { background: url('/ui/pattern/chat_bar_middle.png') repeat-x; background-size: auto 32px; }
+  .m2-chatbar-right { background: url('/ui/pattern/chat_bar_right.png') no-repeat; background-size: cover; }
+
+  /* ── Border C (tabs) ── */
+  .m2-tab {
+    display: grid;
+    grid-template-columns: 21px 1fr 21px;
+    height: 21px;
+    cursor: pointer;
+  }
+  .m2-tab-left { background: url('/ui/pattern/border_c_left.png') no-repeat; background-size: cover; }
+  .m2-tab-mid {
+    background: url('/ui/pattern/border_c_middle.png') repeat-x;
+    background-size: auto 21px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ccc;
+    font-size: 13px;
+    text-shadow: 0 1px 1px rgba(0,0,0,0.8);
+  }
+  .m2-tab-right { background: url('/ui/pattern/border_c_right.png') no-repeat; background-size: cover; }
+  .m2-tab.active .m2-tab-mid { color: #c8b06a; }
+
+  /* ── Text colors ── */
+  .m2-text-gold { color: #c8b06a; }
+  .m2-text-name { color: #d4a832; text-shadow: 0 1px 2px rgba(0,0,0,0.8); }
+  .m2-text-value { color: #d4c8a0; }
+  .m2-text-label { color: #999; }
+  .m2-text-desc { color: #8a8a7a; font-style: italic; }
 }
 
-/* Custom animations */
+/* ── Animations ── */
 @keyframes combatFlash {
   0% { background-color: rgba(200, 48, 48, 0.3); }
   100% { background-color: transparent; }
 }
 
-.combat-flash {
-  animation: combatFlash 0.3s ease-out;
+@keyframes fadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
 }
+
+@keyframes slideIn {
+  0% { transform: translateY(-10px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes glow {
+  0% { box-shadow: 0 0 5px rgba(212,168,50,0.3); }
+  100% { box-shadow: 0 0 20px rgba(212,168,50,0.6); }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+@keyframes damage {
+  0% { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(-30px); opacity: 0; }
+}
+
+.combat-flash { animation: combatFlash 0.3s ease-out; }
+.animate-slide-in { animation: slideIn 0.3s ease-out; }
+.animate-fade-in { animation: fadeIn 0.3s ease-out; }
+.animate-glow { animation: glow 2s ease-in-out infinite alternate; }
+.animate-shake { animation: shake 0.5s ease-in-out; }
+.animate-float { animation: float 3s ease-in-out infinite; }
+.animate-damage { animation: damage 0.8s ease-out forwards; }
+.animate-pulse-slow { animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite; }

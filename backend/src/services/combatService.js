@@ -76,6 +76,18 @@ module.exports = {
     const mob = state.mob;
     const turnLog = [];
 
+    // Flee failed — mob gets a free attack, player does nothing
+    if (action.type === 'flee_fail') {
+      turnLog.push({ turn: state.turn, actor: 'system', action: 'flee_fail', message: 'Tentou fugir mas falhou!' });
+      await this._executeMobAction(state, turnLog);
+
+      this._tickEffects(char);
+      this._tickEffects(mob);
+      state.log.push(...turnLog);
+      state.turn++;
+      return { state, log: turnLog, finished: state.finished, result: state.result };
+    }
+
     // Determine order by speed
     const charFirst = char.speed >= mob.speed;
     const first = charFirst ? 'character' : 'mob';

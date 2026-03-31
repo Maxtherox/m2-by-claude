@@ -3,6 +3,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { closePanel, addNotification } from '../../store/slices/uiSlice';
 import { loadCharacter } from '../../store/slices/characterSlice';
 import { formatNumber } from '../../utils/helpers';
+import { Metin2Window, Metin2Button } from '../metin2ui';
 import * as api from '../../services/api';
 
 export default function HealerPanel() {
@@ -29,13 +30,7 @@ export default function HealerPanel() {
   };
 
   return (
-    <div className="metin-panel-gold p-4 w-[320px]">
-      <div className="flex justify-between items-center mb-3">
-        <h2 className="panel-title !mb-0 !pb-0 !border-0">Curandeiro</h2>
-        <button onClick={() => dispatch(closePanel())} className="text-gray-500 hover:text-metin-gold">X</button>
-      </div>
-      <div className="divider-gold" />
-
+    <Metin2Window title="Curandeiro" onClose={() => dispatch(closePanel())} variant="gold" style={{ width: 320 }}>
       <div className="metin-panel p-3 mb-3 text-sm text-gray-300 italic text-center">
         "Deixe-me restaurar suas energias, guerreiro."
       </div>
@@ -56,15 +51,13 @@ export default function HealerPanel() {
         <div className="divider" />
         <div className="stat-row">
           <span className="stat-label">Custo</span>
-          <span className="text-metin-gold">{formatNumber(cost)} ouro</span>
+          <span className="m2-text-gold">{formatNumber(cost)} ouro</span>
         </div>
       </div>
 
-      <button onClick={handleHeal}
-        disabled={!needsHeal || character.gold < cost}
-        className="metin-btn-gold w-full disabled:opacity-50">
+      <Metin2Button onClick={handleHeal} disabled={!needsHeal || character.gold < cost} style={{ width: '100%' }}>
         {!needsHeal ? 'Ja esta curado' : 'Curar Completamente'}
-      </button>
-    </div>
+      </Metin2Button>
+    </Metin2Window>
   );
 }

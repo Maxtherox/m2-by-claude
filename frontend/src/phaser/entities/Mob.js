@@ -1,10 +1,13 @@
 import Phaser from 'phaser';
 import { setActiveMob } from '../../store/slices/uiSlice';
 
+let _nextInstanceId = 1;
+
 export class Mob {
   constructor(scene, x, y, mobData) {
     this.scene = scene;
     this.mobData = mobData;
+    this.instanceId = _nextInstanceId++;
     this.combatRange = 40;
     this.isPlayerNear = false;
     this.isAlive = true;
@@ -272,6 +275,7 @@ export class Mob {
     if (store) {
       store.dispatch(setActiveMob({
         id: this.mobData.id || Phaser.Math.Between(1, 9999),
+        instanceId: this.instanceId,
         name: this.mobData.name || 'Monstro',
         level: this.mobData.level || this.mobData.min_level || 1,
         type: this.mobData.mob_type || this.mobData.type || 'normal',

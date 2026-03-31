@@ -37,7 +37,7 @@ export default {
         'kingdom-jinno': '#d0a040',
       },
       fontFamily: {
-        medieval: ['MedievalSharp', 'serif'],
+        medieval: ['Arial', 'Tahoma', 'Segoe UI', 'sans-serif'],
         pixel: ['"Press Start 2P"', 'monospace'],
       },
       animation: {

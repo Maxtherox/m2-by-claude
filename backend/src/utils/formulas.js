@@ -78,7 +78,13 @@ module.exports = {
   },
 
   calcRefineCost(currentLevel, itemLevel) {
-    return Math.floor((currentLevel + 1) * 1000 * (1 + (itemLevel || 1) * 0.1));
+    const lvl = itemLevel || 1;
+    if (currentLevel <= 5) {
+      // +0~+5: barato, escala suave
+      return Math.floor((currentLevel + 1) * 500 * (1 + lvl * 0.05));
+    }
+    // +6+: exponencial
+    return Math.floor(Math.pow(currentLevel, 2.5) * 1000 * (1 + lvl * 0.1));
   },
 
   calcRefineBonus(baseValue, refineLevel) {

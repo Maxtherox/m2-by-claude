@@ -1,36 +1,25 @@
 import React from 'react';
+import { Metin2Window } from '../metin2ui';
 
 export default function Modal({ title, onClose, children, footer }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
       <div
-        className="metin-panel-gold p-4 min-w-[300px] max-w-[500px] max-h-[80vh] overflow-y-auto animate-slide-in"
+        className="animate-slide-in"
+        style={{ minWidth: 300, maxWidth: 500, maxHeight: '80vh' }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="flex justify-between items-center mb-1">
-          {title && (
-            <h2 className="panel-title mb-0 pb-0 border-b-0">{title}</h2>
+        <Metin2Window title={title} onClose={onClose} variant="gold">
+          <div style={{ maxHeight: 'calc(80vh - 80px)', overflowY: 'auto' }}>
+            {children}
+          </div>
+          {footer && (
+            <>
+              <div className="divider-gold" />
+              <div className="flex justify-end gap-2">{footer}</div>
+            </>
           )}
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-metin-gold text-xl leading-none ml-auto"
-          >
-            &times;
-          </button>
-        </div>
-        <div className="divider-gold" />
-
-        {/* Content */}
-        <div>{children}</div>
-
-        {/* Footer */}
-        {footer && (
-          <>
-            <div className="divider" />
-            <div className="flex justify-end gap-2">{footer}</div>
-          </>
-        )}
+        </Metin2Window>
       </div>
     </div>
   );

@@ -4,6 +4,7 @@ import { closePanel, addNotification } from '../../store/slices/uiSlice';
 import { loadCharacter } from '../../store/slices/characterSlice';
 import { fetchInventory } from '../../store/slices/inventorySlice';
 import { getRarityColor, formatNumber } from '../../utils/helpers';
+import { Metin2Window, Metin2Button } from '../metin2ui';
 import * as api from '../../services/api';
 
 export default function ShopPanel() {
@@ -37,14 +38,8 @@ export default function ShopPanel() {
   };
 
   return (
-    <div className="metin-panel-gold p-4 w-[400px]">
-      <div className="flex justify-between items-center mb-3">
-        <h2 className="panel-title !mb-0 !pb-0 !border-0">Loja - {npc?.name}</h2>
-        <button onClick={() => dispatch(closePanel())} className="text-gray-500 hover:text-metin-gold">X</button>
-      </div>
-      <div className="divider-gold" />
-
-      <div className="text-xs text-metin-gold mb-2">Ouro: {formatNumber(character?.gold || 0)}</div>
+    <Metin2Window title={`Loja - ${npc?.name || ''}`} onClose={() => dispatch(closePanel())} variant="gold" style={{ width: 400 }}>
+      <div className="text-sm m2-text-gold mb-2">Ouro: {formatNumber(character?.gold || 0)}</div>
 
       {loading ? (
         <div className="text-gray-500 text-sm text-center py-4">Carregando...</div>
@@ -53,23 +48,21 @@ export default function ShopPanel() {
           {(shopData?.items || []).map((item) => (
             <div key={item.id} className="metin-panel p-2 flex items-center gap-3">
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-medieval truncate" style={{ color: getRarityColor(item.rarity) }}>
+                <div className="text-sm truncate" style={{ color: getRarityColor(item.rarity) }}>
                   {item.name}
                 </div>
-                <div className="text-xs text-gray-500">Lv.{item.level_required} | {item.type}</div>
+                <div className="text-sm text-gray-500">Lv.{item.level_required} | {item.type}</div>
               </div>
               <div className="text-right">
-                <div className="text-metin-gold text-xs">{formatNumber(item.buy_price)}</div>
-                <button onClick={() => handleBuy(item)}
-                  disabled={character?.gold < item.buy_price}
-                  className="metin-btn metin-btn-sm text-xs disabled:opacity-50 mt-1">
+                <div className="m2-text-gold text-sm">{formatNumber(item.buy_price)}</div>
+                <Metin2Button onClick={() => handleBuy(item)} disabled={character?.gold < item.buy_price} style={{ fontSize: 13, padding: '2px 8px', marginTop: 4 }}>
                   Comprar
-                </button>
+                </Metin2Button>
               </div>
             </div>
           ))}
         </div>
       )}
-    </div>
+    </Metin2Window>
   );
 }
