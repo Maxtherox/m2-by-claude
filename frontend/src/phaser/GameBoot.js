@@ -36,6 +36,7 @@ export function createGame(parentId, store) {
   };
 
   gameInstance = new Phaser.Game(config);
+  window.__PHASER_GAME__ = gameInstance;
   return gameInstance;
 }
 
@@ -44,5 +45,6 @@ export function destroyGame() {
     gameInstance.destroy(true);
     gameInstance = null;
     window.__GAME_STORE__ = null;
+    window.__PHASER_GAME__ = null;
   }
 }
