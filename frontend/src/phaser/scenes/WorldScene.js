@@ -7,6 +7,7 @@ import { Player } from '../entities/Player';
 import { NPC } from '../entities/NPC';
 import { Mob } from '../entities/Mob';
 import { Resource } from '../entities/Resource';
+import { getEnemyDefinition, getEnemyKeysForArea } from '../config/enemySpriteConfig';
 import {
   TILE_SIZE, MAP_COLS, MAP_ROWS, MAP_WIDTH, MAP_HEIGHT,
   getAreaLayout, getAreaTypeFromName
@@ -32,10 +33,8 @@ export class WorldScene extends Phaser.Scene {
   }
 
   create() {
-    // Set world bounds
     this.physics.world.setBounds(0, 0, MAP_WIDTH, MAP_HEIGHT);
 
-    // Get character data from Redux
     const store = window.__GAME_STORE__;
     const state = store ? store.getState() : null;
     const characterData = state?.character?.data || null;
@@ -47,12 +46,10 @@ export class WorldScene extends Phaser.Scene {
     this.currentAreaName = areaContext.areaName || 'Vila Inicial';
     this.currentAreaDataRef = areaContext.areaDetails;
 
-    // Build the map
     const layout = getAreaLayout(this.currentAreaType);
     this.generateTilemap(layout);
     this.placeScenery(layout);
 
-    // Place player
     const classType = characterData ? (characterData.class_type || characterData.character_class || 1) : 1;
     const spawnX = layout.playerSpawn.x;
     const spawnY = layout.playerSpawn.y;
@@ -60,23 +57,14 @@ export class WorldScene extends Phaser.Scene {
     this.player = new Player(this, spawnX, spawnY, classType);
     this.player.setName(characterData ? (characterData.name || 'Jogador') : 'Jogador');
 
-    // Place NPCs
     this.placeNPCs(layout, store);
-
-    // Place mobs
     this.placeMobs(layout, store);
-
-    // Place resources
     this.placeResources(layout, store);
-
-    // Place portals
     this.placePortals(layout);
 
-    // Setup camera
     this.cameras.main.setBounds(0, 0, MAP_WIDTH, MAP_HEIGHT);
     this.cameras.main.startFollow(this.player.sprite, true, 0.08, 0.08);
 
-    // Setup keyboard input
     this.cursors = this.input.keyboard.createCursorKeys();
     this.wasd = {
       W: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W),
@@ -94,7 +82,6 @@ export class WorldScene extends Phaser.Scene {
     this.keySpace = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
     this.keyEsc = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
 
-    // Key bindings for UI panels
     this.keyI.on('down', () => store?.dispatch(setActivePanel('inventory')));
     this.keyO.on('down', () => store?.dispatch(setActivePanel('equipment')));
     this.keyP.on('down', () => store?.dispatch(setActivePanel('lifeskills')));
@@ -108,17 +95,14 @@ export class WorldScene extends Phaser.Scene {
       store?.dispatch(setActivePanel('status'));
     });
 
-    // Launch UI overlay
     if (!this.scene.isActive('UIOverlayScene')) {
       this.scene.launch('UIOverlayScene');
     }
 
-    // Show area name on entry
     this.time.delayedCall(300, () => {
       this.events.emit('show-area-name', this.currentAreaName || 'Area Desconhecida');
     });
 
-    // Subscribe to Redux state changes for area transitions
     if (store) {
       this.storeUnsubscribe = store.subscribe(() => {
         const nextState = store.getState();
@@ -143,7 +127,6 @@ export class WorldScene extends Phaser.Scene {
   }
 
   generateTilemap(layout) {
-    // Clear existing tiles
     for (const ts of this.tileSprites) {
       ts.destroy();
     }
@@ -152,7 +135,6 @@ export class WorldScene extends Phaser.Scene {
     const baseTile = layout.baseTile;
     const decorTiles = layout.decorTiles || [];
 
-    // Build a 2D grid
     const grid = [];
     for (let row = 0; row < MAP_ROWS; row++) {
       grid[row] = [];
@@ -161,7 +143,6 @@ export class WorldScene extends Phaser.Scene {
       }
     }
 
-    // Apply decor tiles
     for (const decor of decorTiles) {
       for (let row = decor.yStart; row < decor.yEnd && row < MAP_ROWS; row++) {
         for (let col = decor.xStart; col < decor.xEnd && col < MAP_COLS; col++) {
@@ -170,7 +151,6 @@ export class WorldScene extends Phaser.Scene {
       }
     }
 
-    // Add some random variation
     const secondaryTile = layout.secondaryTile;
     for (let i = 0; i < 15; i++) {
       const rx = Phaser.Math.Between(0, MAP_COLS - 1);
@@ -180,7 +160,6 @@ export class WorldScene extends Phaser.Scene {
       }
     }
 
-    // Render tiles
     for (let row = 0; row < MAP_ROWS; row++) {
       for (let col = 0; col < MAP_COLS; col++) {
         const tileKey = grid[row][col];
@@ -214,7 +193,6 @@ export class WorldScene extends Phaser.Scene {
   }
 
   placeNPCs(layout, store) {
-    // Clear existing NPCs
     for (const npc of this.npcs) {
       npc.destroy();
     }
@@ -253,7 +231,6 @@ export class WorldScene extends Phaser.Scene {
   }
 
   placeMobs(layout, store) {
-    // Clear existing mobs
     for (const mob of this.mobs) {
       mob.destroy();
     }
@@ -263,6 +240,8 @@ export class WorldScene extends Phaser.Scene {
     if (spawnZones.length === 0) return;
 
     let mobTemplates = [];
+    let usingPlaceholderMobs = false;
+
     if (store) {
       const state = store.getState();
       const areaMobs = state.game?.areaDetails?.id === this.currentAreaId
@@ -274,12 +253,29 @@ export class WorldScene extends Phaser.Scene {
       }
     }
 
-    // If no Redux data, generate placeholder mobs
     if (mobTemplates.length === 0) {
       mobTemplates = this.generatePlaceholderMobs();
+      usingPlaceholderMobs = true;
     }
 
-    // Distribute mobs across spawn zones
+    const areaEnemyKeys = getEnemyKeysForArea(this.currentAreaType);
+
+    if (usingPlaceholderMobs) {
+      mobTemplates.forEach((template, index) => {
+        const zone = spawnZones[index % spawnZones.length];
+        const x = Phaser.Math.Between(zone.xMin, zone.xMax);
+        const y = Phaser.Math.Between(zone.yMin, zone.yMax);
+
+        const mob = new Mob(this, x, y, {
+          ...template,
+          id: template.id || Phaser.Math.Between(1, 99999),
+        });
+        this.mobs.push(mob);
+      });
+
+      return;
+    }
+
     const mobsPerZone = Math.max(1, Math.ceil(6 / spawnZones.length));
 
     for (const zone of spawnZones) {
@@ -287,16 +283,22 @@ export class WorldScene extends Phaser.Scene {
         const template = mobTemplates[Phaser.Math.Between(0, mobTemplates.length - 1)];
         const x = Phaser.Math.Between(zone.xMin, zone.xMax);
         const y = Phaser.Math.Between(zone.yMin, zone.yMax);
+        const fallbackEnemyKey = areaEnemyKeys.length > 0
+          ? areaEnemyKeys[(this.mobs.length + i) % areaEnemyKeys.length]
+          : null;
+        const enemyKey = template.enemy_key || fallbackEnemyKey;
+        const enemyDefinition = getEnemyDefinition(enemyKey);
 
         const mobData = {
           id: template.id || Phaser.Math.Between(1, 99999),
           template_id: template.id || template.template_id,
-          name: template.name || 'Monstro',
+          name: template.name || enemyDefinition?.name || 'Monstro',
           level: template.level || template.min_level || Phaser.Math.Between(1, 5),
           min_level: template.min_level,
           max_level: template.max_level,
           mob_type: template.mob_type || template.type || 'normal',
           type: template.mob_type || template.type || 'normal',
+          enemy_key: enemyKey,
           hp: template.hp || 100,
           max_hp: template.max_hp || template.hp || 100,
           attack: template.attack || 10,
@@ -313,49 +315,36 @@ export class WorldScene extends Phaser.Scene {
   }
 
   generatePlaceholderMobs() {
-    const areaTypeToMobs = {
-      field: [
-        { name: 'Lobo Selvagem', mob_type: 'normal', level: 1, hp: 80, attack: 8, defense: 3, exp_reward: 15, gold_reward: 5 },
-        { name: 'Javali', mob_type: 'normal', level: 2, hp: 100, attack: 10, defense: 5, exp_reward: 20, gold_reward: 8 },
-        { name: 'Bandido', mob_type: 'aggressive', level: 3, hp: 120, attack: 15, defense: 6, exp_reward: 30, gold_reward: 15 }
-      ],
-      forest: [
-        { name: 'Urso Negro', mob_type: 'normal', level: 5, hp: 200, attack: 20, defense: 10, exp_reward: 50, gold_reward: 20 },
-        { name: 'Aranha Gigante', mob_type: 'aggressive', level: 6, hp: 150, attack: 25, defense: 8, exp_reward: 60, gold_reward: 25 },
-        { name: 'Treant', mob_type: 'elite', level: 8, hp: 400, attack: 30, defense: 20, exp_reward: 120, gold_reward: 50 }
-      ],
-      mine: [
-        { name: 'Golem de Pedra', mob_type: 'normal', level: 10, hp: 300, attack: 25, defense: 25, exp_reward: 80, gold_reward: 30 },
-        { name: 'Morcego das Cavernas', mob_type: 'aggressive', level: 9, hp: 150, attack: 30, defense: 10, exp_reward: 70, gold_reward: 25 },
-        { name: 'Elemental de Terra', mob_type: 'elite', level: 12, hp: 500, attack: 35, defense: 30, exp_reward: 150, gold_reward: 60 }
-      ],
-      cave: [
-        { name: 'Esqueleto Guerreiro', mob_type: 'normal', level: 15, hp: 400, attack: 35, defense: 20, exp_reward: 100, gold_reward: 40 },
-        { name: 'Espectro', mob_type: 'aggressive', level: 16, hp: 350, attack: 45, defense: 15, exp_reward: 120, gold_reward: 50 },
-        { name: 'Dragão das Sombras', mob_type: 'boss', level: 20, hp: 2000, attack: 80, defense: 50, exp_reward: 500, gold_reward: 200 }
-      ],
-      ruins: [
-        { name: 'Guerreiro Morto-Vivo', mob_type: 'normal', level: 12, hp: 350, attack: 30, defense: 18, exp_reward: 90, gold_reward: 35 },
-        { name: 'Mago Corrompido', mob_type: 'elite', level: 14, hp: 300, attack: 50, defense: 15, exp_reward: 130, gold_reward: 55 },
-        { name: 'Cavaleiro Negro', mob_type: 'aggressive', level: 13, hp: 400, attack: 40, defense: 25, exp_reward: 110, gold_reward: 45 }
-      ],
-      desert: [
-        { name: 'Escorpião Gigante', mob_type: 'normal', level: 8, hp: 180, attack: 22, defense: 12, exp_reward: 55, gold_reward: 20 },
-        { name: 'Serpente do Deserto', mob_type: 'aggressive', level: 9, hp: 160, attack: 28, defense: 8, exp_reward: 65, gold_reward: 25 },
-        { name: 'Múmia Anciã', mob_type: 'elite', level: 11, hp: 450, attack: 32, defense: 22, exp_reward: 140, gold_reward: 55 }
-      ],
-      temple: [
-        { name: 'Guardião do Templo', mob_type: 'elite', level: 18, hp: 600, attack: 50, defense: 35, exp_reward: 200, gold_reward: 80 },
-        { name: 'Sacerdote Sombrio', mob_type: 'aggressive', level: 17, hp: 400, attack: 60, defense: 20, exp_reward: 180, gold_reward: 70 },
-        { name: 'Demônio Menor', mob_type: 'boss', level: 25, hp: 3000, attack: 100, defense: 60, exp_reward: 800, gold_reward: 350 }
-      ]
-    };
+    const areaEnemyKeys = getEnemyKeysForArea(this.currentAreaType);
+    const availableEnemyKeys = areaEnemyKeys.length > 0 ? areaEnemyKeys : getEnemyKeysForArea('field');
 
-    return areaTypeToMobs[this.currentAreaType] || areaTypeToMobs.field;
+    return availableEnemyKeys.map((enemyKey, index) => {
+      const enemyDefinition = getEnemyDefinition(enemyKey);
+      const isBoss = index === availableEnemyKeys.length - 1 && availableEnemyKeys.length > 4;
+      const mobType = isBoss
+        ? 'boss'
+        : index % 5 === 0
+          ? 'elite'
+          : index % 2 === 0
+            ? 'aggressive'
+            : 'normal';
+
+      return {
+        id: index + 1,
+        enemy_key: enemyKey,
+        name: enemyDefinition?.name || 'Monstro',
+        mob_type: mobType,
+        level: 1 + index + (this.currentAreaType === 'field' ? 0 : 4),
+        hp: 80 + (index * 35),
+        attack: 8 + (index * 4),
+        defense: 3 + (index * 2),
+        exp_reward: 15 + (index * 12),
+        gold_reward: 5 + (index * 5),
+      };
+    });
   }
 
   placeResources(layout, store) {
-    // Clear existing resources
     for (const res of this.resources) {
       res.destroy();
     }
@@ -394,7 +383,6 @@ export class WorldScene extends Phaser.Scene {
   }
 
   placePortals(layout) {
-    // Clear existing portals
     for (const portal of this.portals) {
       portal.sprite.destroy();
       portal.label.destroy();
@@ -409,7 +397,6 @@ export class WorldScene extends Phaser.Scene {
       sprite.body.setAllowGravity(false);
       sprite.setDepth(3);
 
-      // Pulsing glow animation
       this.tweens.add({
         targets: sprite,
         alpha: 0.5,
@@ -429,10 +416,9 @@ export class WorldScene extends Phaser.Scene {
         strokeThickness: 2
       }).setOrigin(0.5).setDepth(20);
 
-      // Setup overlap detection with player
       const portalObj = {
-        sprite: sprite,
-        label: label,
+        sprite,
+        label,
         data: portalData,
         cooldown: false
       };
@@ -451,22 +437,18 @@ export class WorldScene extends Phaser.Scene {
     this.currentAreaName = areaName;
     this.currentAreaDataRef = areaContext.areaDetails;
 
-    // Rebuild the entire scene
     const layout = getAreaLayout(areaType);
     this.generateTilemap(layout);
     this.placeScenery(layout);
 
-    // Re-place entities
     const store = window.__GAME_STORE__;
     this.placeNPCs(layout, store);
     this.placeMobs(layout, store);
     this.placeResources(layout, store);
     this.placePortals(layout);
 
-    // Move player to spawn
     this.player.setPosition(layout.playerSpawn.x, layout.playerSpawn.y);
 
-    // Show area name
     this.events.emit('show-area-name', areaName || 'Area Desconhecida');
   }
 
@@ -507,11 +489,11 @@ export class WorldScene extends Phaser.Scene {
     if (activePanel) {
       this.player.sprite.setVelocity(0, 0);
       this.player.isMoving = false;
+      this.player.syncAnimationState();
+      this.player.updateLabelPosition();
     } else {
-      // Update player movement
       this.player.update(this.cursors, this.wasd);
 
-      // Check NPC proximity and interactions
       let nearAnyNpc = false;
       for (const npc of this.npcs) {
         const isNear = npc.checkProximity(this.player.sprite);
@@ -524,7 +506,6 @@ export class WorldScene extends Phaser.Scene {
         }
       }
 
-      // Check resource proximity and interactions
       for (const resource of this.resources) {
         const isNear = resource.checkProximity(this.player.sprite);
         if (isNear && !nearAnyNpc) {
@@ -535,10 +516,10 @@ export class WorldScene extends Phaser.Scene {
       }
 
       if (Phaser.Input.Keyboard.JustDown(this.keySpace)) {
+        this.player.attack();
         this.attackNearestMob();
       }
 
-      // Check portal proximity
       for (const portal of this.portals) {
         if (portal.cooldown) continue;
 
@@ -558,12 +539,10 @@ export class WorldScene extends Phaser.Scene {
       }
     }
 
-    // Update mobs
     for (const mob of this.mobs) {
       mob.update(delta, this.player.sprite);
     }
 
-    // Emit coordinate update for UI overlay
     const pos = this.player.getPosition();
     this.events.emit('update-coords', { x: pos.x, y: pos.y });
   }
@@ -591,7 +570,6 @@ export class WorldScene extends Phaser.Scene {
     if (nearestMob) {
       nearestMob.triggerCombat();
 
-      // Visual feedback - flash mob
       this.tweens.add({
         targets: nearestMob.sprite,
         alpha: 0.5,
@@ -600,7 +578,6 @@ export class WorldScene extends Phaser.Scene {
         repeat: 1
       });
 
-      // Show floating damage text
       this.events.emit('show-floating-text', {
         x: nearestMob.sprite.x,
         y: nearestMob.sprite.y - 20,
@@ -611,7 +588,6 @@ export class WorldScene extends Phaser.Scene {
   }
 
   shutdown() {
-    // Cleanup on scene shutdown
     if (this.storeUnsubscribe) {
       this.storeUnsubscribe();
       this.storeUnsubscribe = null;

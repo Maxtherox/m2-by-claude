@@ -1,20 +1,85 @@
 import Phaser from 'phaser';
+import { ENEMY_SPRITE_DEFINITIONS } from '../config/enemySpriteConfig';
+import { PLAYER_SPRITE_ANIMATIONS } from '../config/playerSpriteConfig';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
     super({ key: 'BootScene' });
   }
 
+  preload() {
+    this.preloadPlayerSprites();
+    this.preloadEnemySprites();
+  }
+
   create() {
-    this.generatePlayerSprites();
+    this.createPlayerAnimations();
+    this.createEnemyAnimations();
     this.generateNpcSprites();
-    this.generateMobSprites();
     this.generateResourceSprites();
     this.generateTileSprites();
     this.generatePropSprites();
     this.generateMiscSprites();
 
     this.scene.start('WorldScene');
+  }
+
+  preloadPlayerSprites() {
+    PLAYER_SPRITE_ANIMATIONS.forEach((animation) => {
+      animation.frames.forEach((frameUrl, index) => {
+        this.load.image(`${animation.texturePrefix}_${index}`, frameUrl);
+      });
+    });
+  }
+
+  createPlayerAnimations() {
+    PLAYER_SPRITE_ANIMATIONS.forEach((animation) => {
+      const frames = animation.frames.map((_, index) => ({
+        key: `${animation.texturePrefix}_${index}`,
+      }));
+
+      if (frames.length === 0 || this.anims.exists(animation.animationKey)) {
+        return;
+      }
+
+      this.anims.create({
+        key: animation.animationKey,
+        frames,
+        frameRate: animation.frameRate,
+        repeat: animation.repeat,
+      });
+    });
+  }
+
+  preloadEnemySprites() {
+    ENEMY_SPRITE_DEFINITIONS.forEach((enemy) => {
+      Object.entries(enemy.animations).forEach(([state, frames]) => {
+        frames.forEach((frameUrl, index) => {
+          this.load.image(`${enemy.texturePrefix}_${state}_${index}`, frameUrl);
+        });
+      });
+    });
+  }
+
+  createEnemyAnimations() {
+    ENEMY_SPRITE_DEFINITIONS.forEach((enemy) => {
+      Object.entries(enemy.animations).forEach(([state, frames]) => {
+        const animationKey = enemy.animationKeys[state];
+
+        if (!animationKey || frames.length === 0 || this.anims.exists(animationKey)) {
+          return;
+        }
+
+        this.anims.create({
+          key: animationKey,
+          frames: frames.map((_, index) => ({
+            key: `${enemy.texturePrefix}_${state}_${index}`,
+          })),
+          frameRate: state === 'move' ? 10 : 8,
+          repeat: -1,
+        });
+      });
+    });
   }
 
   createPixelTexture(key, width, height, scale, painter) {
@@ -331,16 +396,6 @@ export class BootScene extends Phaser.Scene {
     }
   }
 
-  generatePlayerSprites() {
-    const variants = ['warrior', 'ninja', 'sura', 'shaman'];
-
-    variants.forEach((variant) => {
-      this.createPixelTexture(`player_${variant}`, 16, 24, 2, (px) => {
-        this.drawPlayerVariant(px, variant);
-      });
-    });
-  }
-
   generateNpcSprites() {
     const variants = [
       { key: 'npc_shop', type: 'shop' },
@@ -356,81 +411,6 @@ export class BootScene extends Phaser.Scene {
       this.createPixelTexture(variant.key, 16, 24, 2, (px) => {
         this.drawNpcVariant(px, variant.type);
       });
-    });
-  }
-
-  generateMobSprites() {
-    this.createPixelTexture('mob_normal', 12, 12, 2, (px) => {
-      px(2, 11, 8, 1, 0x000000, 0.25);
-      px(2, 4, 8, 1, 0x1f1511);
-      px(1, 5, 10, 4, 0x1f1511);
-      px(2, 9, 8, 1, 0x1f1511);
-      px(3, 4, 6, 5, 0x8c7b6d);
-      px(3, 5, 2, 2, 0xa89a8f);
-      px(7, 5, 2, 2, 0x706255);
-      px(2, 3, 2, 2, 0x5d5147);
-      px(8, 3, 2, 2, 0x5d5147);
-      px(4, 6, 1, 1, 0xff5c5c);
-      px(7, 6, 1, 1, 0xff5c5c);
-      px(5, 8, 2, 1, 0x5d5147);
-      px(2, 9, 1, 2, 0x3f3129);
-      px(9, 9, 1, 2, 0x3f3129);
-    });
-
-    this.createPixelTexture('mob_aggressive', 14, 14, 2, (px) => {
-      px(2, 13, 10, 1, 0x000000, 0.25);
-      px(3, 3, 8, 1, 0x24090a);
-      px(2, 4, 10, 6, 0x24090a);
-      px(3, 10, 8, 2, 0x24090a);
-      px(4, 4, 6, 7, 0xb53333);
-      px(4, 5, 2, 2, 0xd86161);
-      px(8, 5, 2, 2, 0x8f2020);
-      px(4, 1, 2, 3, 0xffd46b);
-      px(8, 1, 2, 3, 0xffd46b);
-      px(5, 6, 1, 1, 0xfff0d6);
-      px(8, 6, 1, 1, 0xfff0d6);
-      px(5, 8, 4, 1, 0x601416);
-      px(2, 10, 2, 2, 0x5c1616);
-      px(10, 10, 2, 2, 0x5c1616);
-    });
-
-    this.createPixelTexture('mob_elite', 16, 16, 2, (px) => {
-      px(3, 15, 10, 1, 0x000000, 0.25);
-      px(4, 1, 8, 2, 0x1a2330);
-      px(3, 3, 10, 8, 0x1a2330);
-      px(4, 11, 8, 2, 0x1a2330);
-      px(5, 3, 6, 9, 0x5a6b83);
-      px(5, 4, 2, 3, 0x7f94b2);
-      px(8, 4, 2, 3, 0x42526a);
-      px(4, 0, 2, 2, 0xd5c46d);
-      px(7, 0, 2, 2, 0xd5c46d);
-      px(10, 0, 2, 2, 0xd5c46d);
-      px(6, 6, 1, 1, 0x9ee7ff);
-      px(9, 6, 1, 1, 0x9ee7ff);
-      px(6, 9, 4, 1, 0x243447);
-      px(3, 12, 2, 2, 0x314150);
-      px(11, 12, 2, 2, 0x314150);
-    });
-
-    this.createPixelTexture('mob_boss', 24, 24, 2, (px) => {
-      px(5, 23, 14, 1, 0x000000, 0.3);
-      px(7, 2, 10, 2, 0x2b0a0a);
-      px(5, 4, 14, 10, 0x2b0a0a);
-      px(6, 14, 12, 4, 0x2b0a0a);
-      px(7, 4, 10, 13, 0x7e1d1d);
-      px(7, 5, 4, 4, 0xb93b2f);
-      px(12, 5, 4, 4, 0x591313);
-      px(4, 5, 2, 6, 0x4d0d0d);
-      px(18, 5, 2, 6, 0x4d0d0d);
-      px(7, 0, 3, 4, 0xffd46b);
-      px(10, 1, 4, 3, 0xffe7a3);
-      px(14, 0, 3, 4, 0xffd46b);
-      px(9, 8, 2, 2, 0xfff2d9);
-      px(13, 8, 2, 2, 0xfff2d9);
-      px(10, 12, 4, 2, 0x420909);
-      px(9, 16, 2, 4, 0x3d1111);
-      px(13, 16, 2, 4, 0x3d1111);
-      px(7, 18, 10, 2, 0xd3b754);
     });
   }
 
